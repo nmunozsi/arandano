@@ -1,0 +1,26 @@
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.npm/
+.pnpm-store/
+.yarn/
+
+# arandano
+.arandano/state.json
+.arandano/runs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Env
+.env
+.env.local
+.env.*.local
