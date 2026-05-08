@@ -1,0 +1,29 @@
+{
+  "name": "arandano-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "npm run -ws build --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "typecheck": "tsc -b",
+    "coverage": "vitest run --coverage",
+    "audit": "npm audit --audit-level=high",
+    "secrets": "gitleaks detect --no-banner --redact",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "tsup": "^8.2.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  }
+}
