@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { SUPPORTED_STACKS } from '../stacks.js';
+import { SUPPORTED_STACKS, isSupportedStack } from '../stacks.js';
 
 describe('stacks', () => {
-  it('should have supported stacks', () => {
-    expect(SUPPORTED_STACKS).toContain('typescript');
-    expect(SUPPORTED_STACKS).toContain('node');
+  it('defines SUPPORTED_STACKS correctly', () => {
+    expect(SUPPORTED_STACKS).toEqual(['node-ts', 'python', 'go', 'polyglot']);
+  });
+
+  it('isSupportedStack accepts known and rejects unknown', () => {
+    expect(isSupportedStack('node-ts')).toBe(true);
+    expect(isSupportedStack('python')).toBe(true);
+    expect(isSupportedStack('rust')).toBe(false);
+    expect(isSupportedStack('')).toBe(false);
   });
 });
