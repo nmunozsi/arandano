@@ -11,6 +11,7 @@ labels: bug
 ## Reproduction
 
 ## Environment
+
 - arandano version:
 - OS:
 - Node:
