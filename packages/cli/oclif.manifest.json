@@ -1,0 +1,21 @@
+{
+  "commands": {
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Display arandano version",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "version.js"]
+    }
+  },
+  "version": "0.0.0"
+}

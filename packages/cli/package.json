@@ -1,0 +1,45 @@
+{
+  "name": "@arandano/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "arandano": "./bin/run.js"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "oclif.manifest.json"
+  ],
+  "scripts": {
+    "build": "tsup && oclif manifest",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@arandano/core": "0.0.0",
+    "@oclif/core": "^4.0.0"
+  },
+  "devDependencies": {
+    "oclif": "^4.0.0"
+  },
+  "oclif": {
+    "bin": "arandano",
+    "dirname": "arandano",
+    "commands": "./dist/commands",
+    "topicSeparator": " ",
+    "topics": {}
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
