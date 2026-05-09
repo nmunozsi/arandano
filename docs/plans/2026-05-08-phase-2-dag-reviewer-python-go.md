@@ -1,0 +1,1446 @@
+# arandano Phase 2 — DAG Batching, Reviewer Task, Python + Go Stacks Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Move from one-task-at-a-time to batched DAG execution. Implement parallel dispatch with `max_parallel`, the reviewer task that auto-spawns after each coder task, two new stacks (Python and Go) with full quality configs, and the management subcommands (`status`, `retry`, `cleanup`, `doctor`, `memory`, `issue`). After this phase, a real plan with multiple tasks runs end-to-end with reviewer feedback loops, and `arandano init --stack=python` / `--stack=go` are first-class.
+
+**Architecture:** A new `Batch` type in `@arandano/core` represents a set of ready tasks. The `Orchestrator` class loads all task MDs in a plan folder, builds a DAG, and pulls batches off it as dependencies clear. Reviewer tasks are synthetic — created in-memory when a coder task completes, sharing the same execution path. New `@arandano/templates/stacks/python/` and `stacks/go/` ship parallel toolchains. Management subcommands read `.arandano/state.json` and Git/Docker state.
+
+**Tech Stack:** Adds `graphlib` (or a hand-rolled topo sort), and inside the Python and Go stacks: `ruff`, `mypy`, `pytest`, `coverage.py`, `pip-audit`, `gofmt`, `golangci-lint`, `go test`, `govulncheck`.
+
+**Reference spec:** `arandano-design.md` §6, §10, §15.3, §16, §24 Phase 2.
+
+**Scope deferrals (deliberate, picked up later):**
+
+- Multi-provider CLI selection (OpenCode, Gemini, Codex) — Phase 3.
+- Coverage delta vs base + security as `required` — Phase 3.
+- Remote Docker over SSH — Phase 4.
+
+---
+
+## File Structure (this plan creates)
+
+```
+arandano/
+├── packages/core/src/
+│   ├── orchestrator/
+│   │   ├── dag.ts                                  topo sort + ready batch
+│   │   ├── orchestrator.ts                         drives batches to completion
+│   │   └── __tests__/{dag,orchestrator}.test.ts
+│   ├── reviewer/
+│   │   ├── synthesizeReviewerTask.ts
+│   │   └── __tests__/synthesizeReviewerTask.test.ts
+│   └── tasks/
+│       ├── loadPlan.ts                             read all task MDs in a plan dir
+│       └── __tests__/loadPlan.test.ts
+├── packages/cli/src/commands/
+│   ├── status.ts
+│   ├── retry.ts
+│   ├── cleanup.ts
+│   ├── doctor.ts
+│   ├── memory/{promote,list}.ts
+│   ├── issue/{open,close,list}.ts
+│   └── run.ts                                      modify: accept --plan, dispatch batched
+├── packages/templates/stacks/python/                full python scaffold (mirror node-ts)
+├── packages/templates/stacks/go/                    full go scaffold
+
+arandano-worker/
+└── lib/src/
+    ├── reviewer/
+    │   ├── reviewerDriver.ts                       alt entrypoint when role=reviewer
+    │   ├── reviewChecklist.ts
+    │   └── __tests__/reviewChecklist.test.ts
+    ├── gates/python/{format,lint,typecheck,test,coverage,security}.ts
+    ├── gates/go/{format,lint,test,coverage,security}.ts
+    ├── stack.ts                                    detect stack from .arandano/config.yaml
+    └── driver.ts                                   modify: branch by stack
+```
+
+---
+
+### Task 1: DAG construction and ready-batch selection (TDD)
+
+**Goal:** Pure functions over a list of `TaskFrontmatter`s + a `RunState`. Returns the next batch of ready task IDs (those whose `depends_on` are all `completed`), capped at `max_parallel`. Detects cycles and missing dependencies.
+
+**Files:**
+
+- Create: `packages/core/src/orchestrator/dag.ts`
+- Create: `packages/core/src/orchestrator/__tests__/dag.test.ts`
+
+- [ ] **Step 1: Write the failing tests**
+
+`packages/core/src/orchestrator/__tests__/dag.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { selectReadyBatch, validateDag } from '../dag.js';
+import type { TaskFrontmatter } from '../../types/task.js';
+
+const tf = (id: string, deps: string[] = []): TaskFrontmatter => ({
+  id,
+  title: id,
+  role: 'coder',
+  depends_on: deps,
+});
+
+describe('validateDag', () => {
+  it('passes a clean DAG', () => {
+    expect(() => validateDag([tf('T1'), tf('T2', ['T1']), tf('T3', ['T1'])])).not.toThrow();
+  });
+  it('throws on cycle', () => {
+    expect(() => validateDag([tf('T1', ['T2']), tf('T2', ['T1'])])).toThrow(/cycle/);
+  });
+  it('throws on missing dependency', () => {
+    expect(() => validateDag([tf('T2', ['T_GHOST'])])).toThrow(/T_GHOST/);
+  });
+});
+
+describe('selectReadyBatch', () => {
+  it('selects all root tasks initially', () => {
+    const batch = selectReadyBatch({
+      tasks: [tf('T1'), tf('T2'), tf('T3', ['T1'])],
+      state: { tasks: {} },
+      maxParallel: 5,
+    });
+    expect(batch.sort()).toEqual(['T1', 'T2']);
+  });
+
+  it('caps at maxParallel', () => {
+    const batch = selectReadyBatch({
+      tasks: [tf('T1'), tf('T2'), tf('T3'), tf('T4')],
+      state: { tasks: {} },
+      maxParallel: 2,
+    });
+    expect(batch.length).toBe(2);
+  });
+
+  it('does not include tasks already in_progress or completed', () => {
+    const batch = selectReadyBatch({
+      tasks: [tf('T1'), tf('T2')],
+      state: { tasks: { T1: { status: 'in_progress' }, T2: { status: 'completed' } } },
+      maxParallel: 5,
+    });
+    expect(batch).toEqual([]);
+  });
+
+  it('unblocks a task once its deps are completed', () => {
+    const batch = selectReadyBatch({
+      tasks: [tf('T1'), tf('T2', ['T1'])],
+      state: { tasks: { T1: { status: 'completed' } } },
+      maxParallel: 5,
+    });
+    expect(batch).toEqual(['T2']);
+  });
+
+  it('stops a task whose dependency failed', () => {
+    const batch = selectReadyBatch({
+      tasks: [tf('T1'), tf('T2', ['T1'])],
+      state: { tasks: { T1: { status: 'failed' } } },
+      maxParallel: 5,
+    });
+    expect(batch).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+```bash
+npm test -- dag
+```
+
+- [ ] **Step 3: Implement `packages/core/src/orchestrator/dag.ts`**
+
+```ts
+import type { TaskFrontmatter } from '../types/task.js';
+import type { RunState } from '../state/store.js';
+
+export function validateDag(tasks: TaskFrontmatter[]): void {
+  const ids = new Set(tasks.map((t) => t.id));
+  for (const t of tasks) {
+    for (const d of t.depends_on ?? []) {
+      if (!ids.has(d)) throw new Error(`task ${t.id} depends on unknown task ${d}`);
+    }
+  }
+  // Kahn's algorithm: count incoming edges, peel off zero-indegree.
+  const indeg = new Map<string, number>();
+  for (const t of tasks) indeg.set(t.id, (t.depends_on ?? []).length);
+  const queue: string[] = [];
+  for (const [id, n] of indeg) if (n === 0) queue.push(id);
+  let processed = 0;
+  while (queue.length) {
+    const id = queue.shift()!;
+    processed += 1;
+    for (const t of tasks) {
+      if ((t.depends_on ?? []).includes(id)) {
+        const next = (indeg.get(t.id) ?? 0) - 1;
+        indeg.set(t.id, next);
+        if (next === 0) queue.push(t.id);
+      }
+    }
+  }
+  if (processed !== tasks.length) throw new Error('cycle detected in task DAG');
+}
+
+export interface SelectOpts {
+  tasks: TaskFrontmatter[];
+  state: RunState;
+  maxParallel: number;
+}
+
+export function selectReadyBatch(opts: SelectOpts): string[] {
+  const status = (id: string) => opts.state.tasks[id]?.status;
+  const ready: string[] = [];
+  for (const t of opts.tasks) {
+    if (status(t.id) === 'completed' || status(t.id) === 'in_progress' || status(t.id) === 'failed')
+      continue;
+    const deps = t.depends_on ?? [];
+    if (deps.every((d) => status(d) === 'completed')) ready.push(t.id);
+  }
+  return ready.slice(0, opts.maxParallel);
+}
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+```bash
+npm test -- dag
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/core/src/orchestrator/
+git commit -m "feat(core): DAG validation and ready-batch selection"
+```
+
+---
+
+### Task 2: Plan loader (TDD)
+
+**Goal:** Walk a plan directory (`.arandano/tasks/<plan-slug>/T*.md`), parse each, return the list.
+
+**Files:**
+
+- Create: `packages/core/src/tasks/loadPlan.ts`
+- Create: `packages/core/src/tasks/__tests__/loadPlan.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+`packages/core/src/tasks/__tests__/loadPlan.test.ts`:
+
+```ts
+import { describe, expect, it, beforeEach } from 'vitest';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadPlan } from '../loadPlan.js';
+
+let dir: string;
+beforeEach(async () => {
+  dir = await mkdtemp(join(tmpdir(), 'arandano-plan-'));
+  return async () => rm(dir, { recursive: true, force: true });
+});
+
+describe('loadPlan', () => {
+  it('loads all task MDs in a plan dir', async () => {
+    const planDir = join(dir, '.arandano', 'tasks', 'p');
+    await mkdir(planDir, { recursive: true });
+    await writeFile(join(planDir, 'T1-foo.md'), '---\nid: T1\ntitle: foo\nrole: coder\n---\n');
+    await writeFile(
+      join(planDir, 'T2-bar.md'),
+      '---\nid: T2\ntitle: bar\nrole: coder\ndepends_on: [T1]\n---\n',
+    );
+    const tasks = await loadPlan({ projectRoot: dir, planSlug: 'p' });
+    expect(tasks.map((t) => t.frontmatter.id).sort()).toEqual(['T1', 'T2']);
+    expect(tasks.find((t) => t.frontmatter.id === 'T2')?.frontmatter.depends_on).toEqual(['T1']);
+  });
+});
+```
+
+- [ ] **Step 2: Implement `packages/core/src/tasks/loadPlan.ts`**
+
+```ts
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { parseTaskMd } from '../parsers/task-md.js';
+import type { TaskMd } from '../types/task.js';
+
+export async function loadPlan(opts: { projectRoot: string; planSlug: string }): Promise<TaskMd[]> {
+  const dir = join(opts.projectRoot, '.arandano', 'tasks', opts.planSlug);
+  const entries = await readdir(dir);
+  const out: TaskMd[] = [];
+  for (const name of entries) {
+    if (!/^T\d+-.*\.md$/.test(name)) continue;
+    const fp = join(dir, name);
+    out.push(parseTaskMd(await readFile(fp, 'utf8'), fp));
+  }
+  return out;
+}
+```
+
+- [ ] **Step 3: Run tests, commit**
+
+```bash
+npm test -- loadPlan
+git add packages/core/src/tasks/
+git commit -m "feat(core): plan task loader"
+```
+
+---
+
+### Task 3: Orchestrator class — drives a plan to completion (TDD)
+
+**Goal:** `new Orchestrator({...}).run()` loads the plan, validates the DAG, then pulls ready batches and dispatches them in parallel until the plan terminates (all done or no progress possible).
+
+**Files:**
+
+- Create: `packages/core/src/orchestrator/orchestrator.ts`
+- Create: `packages/core/src/orchestrator/__tests__/orchestrator.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+`packages/core/src/orchestrator/__tests__/orchestrator.test.ts`:
+
+```ts
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Orchestrator } from '../orchestrator.js';
+import type { Executor } from '../../types/executor.js';
+
+let dir: string;
+beforeEach(async () => {
+  dir = await mkdtemp(join(tmpdir(), 'arandano-orch-'));
+  return async () => rm(dir, { recursive: true, force: true });
+});
+
+async function seedPlan(ids: Array<{ id: string; deps?: string[] }>, maxParallel = 2) {
+  const planDir = join(dir, '.arandano', 'tasks', 'p');
+  await mkdir(planDir, { recursive: true });
+  await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+  await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '# coder');
+  for (const t of ids) {
+    const deps = t.deps ? `depends_on: [${t.deps.join(', ')}]\n` : '';
+    await writeFile(
+      join(planDir, `${t.id}-x.md`),
+      `---\nid: ${t.id}\ntitle: x\nrole: coder\n${deps}---\nbody`,
+    );
+  }
+  await writeFile(
+    join(dir, '.arandano', 'config.yaml'),
+    `project: { name: x, default_branch: main }
+executor: { backend: docker, docker: { image: i, workdir: /workspace, plugins_mount: baked-in, env_pass: [] } }
+git: { forge: github, remote: origin, branch_prefix: agent/, open_pr: true }
+roles: { coder: { cli: claude-code, model: m, tdd: strict } }
+quality_defaults: { format: required, lint: required, typecheck: required, test: required, coverage: { min: 80, delta: any }, security: warn, commit_msg: conventional, reviewer_required: false }
+batching: { max_parallel: ${maxParallel}, timeout_minutes: 1, retry_policy: { max_attempts: 1, on: [container_error] } }
+`,
+  );
+}
+
+const okExecutor = (): Executor => ({
+  start: vi.fn(async (t) => ({ id: t.taskId })),
+  wait: vi.fn(async () => ({ exitCode: 0, reason: 'ok' as const })),
+  logs: vi.fn(async function* () {}),
+  cancel: vi.fn(async () => {}),
+});
+
+describe('Orchestrator', () => {
+  it('runs all tasks when no failures', async () => {
+    await seedPlan([{ id: 'T1' }, { id: 'T2', deps: ['T1'] }]);
+    const exec = okExecutor();
+    const o = new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec });
+    const summary = await o.run();
+    expect(summary.completed.sort()).toEqual(['T1', 'T2']);
+    expect(exec.start).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not start a task whose dep failed', async () => {
+    await seedPlan([{ id: 'T1' }, { id: 'T2', deps: ['T1'] }]);
+    const exec = {
+      ...okExecutor(),
+      wait: vi.fn(async () => ({ exitCode: 1, reason: 'error' as const })),
+    };
+    const o = new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec });
+    const summary = await o.run();
+    expect(summary.failed).toEqual(['T1']);
+    expect(summary.skipped).toEqual(['T2']);
+    expect(exec.start).toHaveBeenCalledTimes(1);
+  });
+
+  it('respects max_parallel', async () => {
+    await seedPlan([{ id: 'T1' }, { id: 'T2' }, { id: 'T3' }], 2);
+    let active = 0;
+    let peak = 0;
+    const exec: Executor = {
+      start: vi.fn(async (t) => {
+        active += 1;
+        peak = Math.max(peak, active);
+        return { id: t.taskId };
+      }),
+      wait: vi.fn(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+        active -= 1;
+        return { exitCode: 0, reason: 'ok' as const };
+      }),
+      logs: vi.fn(async function* () {}),
+      cancel: vi.fn(async () => {}),
+    };
+    const o = new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec });
+    await o.run();
+    expect(peak).toBeLessThanOrEqual(2);
+  });
+});
+```
+
+- [ ] **Step 2: Implement `packages/core/src/orchestrator/orchestrator.ts`**
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { loadConfig } from '../config/load.js';
+import { loadPlan } from '../tasks/loadPlan.js';
+import { StateStore } from '../state/store.js';
+import { selectReadyBatch, validateDag } from './dag.js';
+import { runOne } from './runOne.js';
+import type { Executor } from '../types/executor.js';
+
+export interface OrchestratorOpts {
+  projectRoot: string;
+  planSlug: string;
+  executor: Executor;
+}
+
+export interface RunSummary {
+  completed: string[];
+  failed: string[];
+  skipped: string[];
+}
+
+export class Orchestrator {
+  constructor(private readonly opts: OrchestratorOpts) {}
+
+  async run(): Promise<RunSummary> {
+    const cfgText = await readFile(join(this.opts.projectRoot, '.arandano', 'config.yaml'), 'utf8');
+    const cfg = loadConfig(cfgText);
+    const tasks = await loadPlan({
+      projectRoot: this.opts.projectRoot,
+      planSlug: this.opts.planSlug,
+    });
+    const fms = tasks.map((t) => t.frontmatter);
+    validateDag(fms);
+
+    const store = new StateStore(join(this.opts.projectRoot, '.arandano', 'state.json'));
+    const completed: string[] = [];
+    const failed: string[] = [];
+    const inFlight = new Map<string, Promise<void>>();
+
+    for (;;) {
+      const state = await store.read();
+      // Drop completed/failed from in-flight tracking on each iteration end.
+      const ready = selectReadyBatch({
+        tasks: fms,
+        state,
+        maxParallel: cfg.batching.max_parallel - inFlight.size,
+      }).filter((id) => !inFlight.has(id));
+
+      for (const id of ready) {
+        inFlight.set(
+          id,
+          (async () => {
+            const r = await runOne({
+              projectRoot: this.opts.projectRoot,
+              taskId: id,
+              executor: this.opts.executor,
+            });
+            if (r.reason === 'ok') completed.push(id);
+            else failed.push(id);
+          })(),
+        );
+      }
+
+      if (inFlight.size === 0) break;
+      // Wait for at least one to finish before re-evaluating.
+      await Promise.race(Array.from(inFlight.values()));
+      // Clear settled promises.
+      for (const [id, p] of inFlight) {
+        if (await isSettled(p)) inFlight.delete(id);
+      }
+    }
+
+    const skipped = fms
+      .map((t) => t.id)
+      .filter((id) => !completed.includes(id) && !failed.includes(id));
+    return { completed, failed, skipped };
+  }
+}
+
+async function isSettled(p: Promise<void>): Promise<boolean> {
+  return Promise.race([p.then(() => true).catch(() => true), Promise.resolve(false)]);
+}
+```
+
+- [ ] **Step 3: Run tests, commit**
+
+```bash
+npm test -- orchestrator
+git add packages/core/
+git commit -m "feat(core): Orchestrator drives a plan with bounded parallelism"
+```
+
+---
+
+### Task 4: Synthetic reviewer task generator (TDD)
+
+**Goal:** When a coder task completes (with `reviewer_required: true`), produce a synthetic reviewer task that depends on it, has `role: reviewer`, and references the same PR.
+
+**Files:**
+
+- Create: `packages/core/src/reviewer/synthesizeReviewerTask.ts`
+- Create: `packages/core/src/reviewer/__tests__/synthesizeReviewerTask.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { synthesizeReviewerTask } from '../synthesizeReviewerTask.js';
+import type { TaskFrontmatter } from '../../types/task.js';
+
+const coder: TaskFrontmatter = {
+  id: 'T1',
+  title: 'add greet',
+  role: 'coder',
+  quality: { reviewer_required: true } as never,
+};
+
+describe('synthesizeReviewerTask', () => {
+  it('produces a T1-review task that depends on T1', () => {
+    const r = synthesizeReviewerTask({ source: coder, prUrl: 'https://gh/x/y/pull/1' });
+    expect(r.id).toBe('T1-review');
+    expect(r.role).toBe('reviewer');
+    expect(r.depends_on).toEqual(['T1']);
+    expect(r.title).toContain('Review T1');
+  });
+
+  it('returns null when reviewer_required is false', () => {
+    const cf: TaskFrontmatter = { ...coder, quality: { reviewer_required: false } as never };
+    expect(synthesizeReviewerTask({ source: cf, prUrl: 'x' })).toBeNull();
+  });
+});
+```
+
+- [ ] **Step 2: Implement**
+
+```ts
+import type { TaskFrontmatter } from '../types/task.js';
+
+export function synthesizeReviewerTask(opts: {
+  source: TaskFrontmatter;
+  prUrl: string;
+}): TaskFrontmatter | null {
+  const reviewerRequired = (opts.source.quality as { reviewer_required?: boolean } | undefined)
+    ?.reviewer_required;
+  if (!reviewerRequired) return null;
+  return {
+    id: `${opts.source.id}-review`,
+    title: `Review ${opts.source.id}: ${opts.source.title}`,
+    role: 'reviewer',
+    depends_on: [opts.source.id],
+  };
+}
+```
+
+- [ ] **Step 3: Wire into the Orchestrator**
+
+In `orchestrator.ts`, after a coder task succeeds: call `synthesizeReviewerTask`, and if non-null, append to the in-memory `fms` list. The next iteration will pick it up.
+
+```ts
+// after: completed.push(id);
+const sourceTask = fms.find((t) => t.id === id);
+if (sourceTask && sourceTask.role === 'coder') {
+  const prUrl = (await store.read()).tasks[id]?.pr_url ?? '';
+  const reviewer = synthesizeReviewerTask({ source: sourceTask, prUrl });
+  if (reviewer) fms.push(reviewer);
+}
+```
+
+- [ ] **Step 4: Add a test that the orchestrator spawns the reviewer task**
+
+In `orchestrator.test.ts`, add:
+
+```ts
+it('spawns a reviewer task when reviewer_required=true on the coder task', async () => {
+  const planDir = join(dir, '.arandano', 'tasks', 'p');
+  await mkdir(planDir, { recursive: true });
+  await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+  await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');
+  await writeFile(join(dir, '.arandano', 'roles', 'reviewer.md'), '');
+  await writeFile(
+    join(planDir, 'T1-x.md'),
+    '---\nid: T1\ntitle: x\nrole: coder\nquality: { reviewer_required: true }\n---\n',
+  );
+  await writeFile(
+    join(dir, '.arandano', 'config.yaml'),
+    /* same config but with reviewer role configured */
+  );
+  const exec = okExecutor();
+  const o = new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec });
+  const r = await o.run();
+  expect(r.completed.sort()).toEqual(['T1', 'T1-review']);
+});
+```
+
+(Add `reviewer: { cli: claude-code, model: m }` to the config in this test.)
+
+- [ ] **Step 5: Run tests, commit**
+
+```bash
+npm test
+git add packages/core/
+git commit -m "feat(core): auto-spawn reviewer tasks after coder tasks"
+```
+
+---
+
+### Task 5: Reviewer driver inside the worker
+
+**Goal:** When `ARANDANO_ROLE=reviewer`, the worker reads the linked PR, fetches the diff, runs the checklist, and posts review comments.
+
+**Files (in `arandano-worker`):**
+
+- Create: `lib/src/reviewer/reviewChecklist.ts`
+- Create: `lib/src/reviewer/reviewerDriver.ts`
+- Create: `lib/src/reviewer/__tests__/reviewChecklist.test.ts`
+- Modify: `lib/src/driver.ts` (branch on role)
+
+- [ ] **Step 1: Write the failing test for the checklist**
+
+`lib/src/reviewer/__tests__/reviewChecklist.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { applyChecklist } from '../reviewChecklist.js';
+
+describe('applyChecklist', () => {
+  it('flags a diff that adds a hardcoded secret', () => {
+    const r = applyChecklist({
+      diff: '+ const apiKey = "sk-1234567890abcdef1234"',
+      contextRules: ['no hardcoded secrets'],
+    });
+    expect(r.findings.length).toBeGreaterThan(0);
+    expect(r.findings[0]?.severity).toBe('blocker');
+  });
+
+  it('passes a clean diff', () => {
+    const r = applyChecklist({
+      diff: '+ const greet = (name: string) => `hello, ${name}`;',
+      contextRules: [],
+    });
+    expect(r.findings).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: Implement `lib/src/reviewer/reviewChecklist.ts`**
+
+```ts
+export interface Finding {
+  severity: 'info' | 'warn' | 'blocker';
+  message: string;
+  excerpt?: string;
+}
+
+export interface ChecklistResult {
+  findings: Finding[];
+  decision: 'approve' | 'request_changes';
+}
+
+const SECRET_PATTERNS = [/sk-[A-Za-z0-9]{16,}/, /AKIA[0-9A-Z]{16}/, /AIza[0-9A-Za-z\-_]{30,}/];
+
+export function applyChecklist(opts: { diff: string; contextRules: string[] }): ChecklistResult {
+  const findings: Finding[] = [];
+  for (const re of SECRET_PATTERNS) {
+    const m = re.exec(opts.diff);
+    if (m) {
+      findings.push({
+        severity: 'blocker',
+        message: 'possible hardcoded secret in diff',
+        excerpt: m[0],
+      });
+    }
+  }
+  // Add more rules over time. Phase 2 ships secret-detection only.
+  return {
+    findings,
+    decision: findings.some((f) => f.severity === 'blocker') ? 'request_changes' : 'approve',
+  };
+}
+```
+
+- [ ] **Step 3: Implement `lib/src/reviewer/reviewerDriver.ts`**
+
+```ts
+import { runShell } from '../gates/_shell.js';
+import { applyChecklist } from './reviewChecklist.js';
+import { writeJournal, writeResult } from '../writeResult.js';
+import { join } from 'node:path';
+
+export async function reviewerMain(): Promise<number> {
+  const workspace = process.cwd();
+  const taskId = process.env.ARANDANO_TASK_ID!;
+  const sourceTaskId = taskId.replace(/-review$/, '');
+  const runFolder = process.env.ARANDANO_RUN_FOLDER!;
+
+  // Find the PR for the source task.
+  const prList = await runShell({
+    cmd: 'gh',
+    args: [
+      'pr',
+      'list',
+      '--head',
+      `agent/${sourceTaskId}-`,
+      '--state',
+      'open',
+      '--json',
+      'number,url,headRefName,body',
+      '--limit',
+      '1',
+      '--search',
+      sourceTaskId,
+    ],
+    cwd: workspace,
+  });
+  if (!prList.passed) return 1;
+  const found = JSON.parse(prList.output || '[]') as Array<{ number: number; url: string }>;
+  const pr = found[0];
+  if (!pr) {
+    await writeJournal(
+      join(workspace, '.arandano', 'runs', runFolder, 'review.md'),
+      `No PR found for ${sourceTaskId}`,
+    );
+    return 1;
+  }
+
+  const diff = await runShell({
+    cmd: 'gh',
+    args: ['pr', 'diff', String(pr.number)],
+    cwd: workspace,
+  });
+  const result = applyChecklist({ diff: diff.output, contextRules: [] });
+
+  const body = [
+    `Review of #${pr.number} (${sourceTaskId}):`,
+    '',
+    ...(result.findings.length === 0
+      ? ['No blockers found. Approving.']
+      : result.findings.map(
+          (f) => `- **${f.severity}** ${f.message}${f.excerpt ? ' — `' + f.excerpt + '`' : ''}`,
+        )),
+  ].join('\n');
+
+  const action = result.decision === 'approve' ? '--approve' : '--request-changes';
+  await runShell({
+    cmd: 'gh',
+    args: ['pr', 'review', String(pr.number), action, '--body', body],
+    cwd: workspace,
+  });
+
+  await writeJournal(join(workspace, '.arandano', 'runs', runFolder, 'review.md'), body);
+  await writeResult(join(workspace, '.arandano', 'runs', runFolder, 'result.json'), {
+    task_id: taskId,
+    branch: '',
+    pr_url: pr.url,
+    passed: result.decision === 'approve',
+    tdd: { mode: 'relaxed', ok: true },
+    quality: {},
+    started_at: new Date().toISOString(),
+    ended_at: new Date().toISOString(),
+  });
+  return result.decision === 'approve' ? 0 : 1;
+}
+```
+
+- [ ] **Step 4: Branch on role inside `lib/src/driver.ts`**
+
+At the top of `main()` add:
+
+```ts
+const role = process.env.ARANDANO_ROLE_MD ?? '';
+if (role.endsWith('reviewer.md')) {
+  const { reviewerMain } = await import('./reviewer/reviewerDriver.js');
+  return await reviewerMain();
+}
+```
+
+- [ ] **Step 5: Build, run tests, commit**
+
+```bash
+npm run build
+npm test
+git add lib/
+git commit -m "feat(lib): reviewer driver with secret-detection checklist"
+```
+
+---
+
+### Task 6: `arandano run --plan=<slug>` accepts a whole plan
+
+**Goal:** Extend the existing `run` command so a single argument is still a task ID, but `--plan=<slug>` runs the entire plan via `Orchestrator`.
+
+**Files:**
+
+- Modify: `packages/cli/src/commands/run.ts`
+- Modify: `packages/cli/src/__tests__/run.test.ts`
+
+- [ ] **Step 1: Update tests**
+
+```ts
+it('runs a whole plan when --plan is set', async () => {
+  // Use a fake projectRoot via cwd; mock Orchestrator
+});
+```
+
+- [ ] **Step 2: Update `run.ts`**
+
+```ts
+import { Args, Command, Flags } from '@oclif/core';
+import { Orchestrator, runOne } from '@arandano/core';
+import { DockerExecutor } from '@arandano/executors-docker';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import yaml from 'yaml';
+
+export default class Run extends Command {
+  static override description = 'Run a single task or a whole plan.';
+  static override args = {
+    taskId: Args.string({ required: false, description: 'task id (omit when using --plan)' }),
+  };
+  static override flags = {
+    plan: Flags.string({ description: 'plan slug under .arandano/tasks/<slug>/' }),
+  };
+
+  async run(): Promise<void> {
+    const { args, flags } = await this.parse(Run);
+    const projectRoot = process.cwd();
+    const cfg = yaml.parse(await readFile(join(projectRoot, '.arandano', 'config.yaml'), 'utf8'));
+    const executor = new DockerExecutor({ image: cfg.executor.docker.image, projectRoot });
+
+    if (flags.plan) {
+      const o = new Orchestrator({ projectRoot, planSlug: flags.plan, executor });
+      const summary = await o.run();
+      this.log(
+        `completed=${summary.completed.length} failed=${summary.failed.length} skipped=${summary.skipped.length}`,
+      );
+      if (summary.failed.length > 0) this.exit(1);
+      return;
+    }
+
+    if (!args.taskId) throw new Error('provide a task id or --plan');
+    const result = await runOne({ projectRoot, taskId: args.taskId, executor });
+    this.log(`exit=${result.exitCode} reason=${result.reason}`);
+    if (result.exitCode !== 0) this.exit(result.exitCode);
+  }
+}
+```
+
+- [ ] **Step 3: Run tests, commit**
+
+```bash
+npm test -- run.test
+git add packages/cli/
+git commit -m "feat(cli): arandano run --plan dispatches the whole DAG"
+```
+
+---
+
+### Task 7: `arandano status` command
+
+**Goal:** Pretty-print the current `state.json` as a table: task ID, status, branch, PR URL, attempts.
+
+**Files:**
+
+- Create: `packages/cli/src/commands/status.ts`
+- Create: `packages/cli/src/__tests__/status.test.ts`
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, it, beforeEach } from 'vitest';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import Status from '../commands/status.js';
+
+let dir: string;
+beforeEach(async () => {
+  dir = await mkdtemp(join(tmpdir(), 'arandano-status-'));
+  return async () => rm(dir, { recursive: true, force: true });
+});
+
+describe('arandano status', () => {
+  it('prints task statuses from state.json', async () => {
+    await mkdir(join(dir, '.arandano'), { recursive: true });
+    await writeFile(
+      join(dir, '.arandano', 'state.json'),
+      JSON.stringify({ tasks: { T1: { status: 'completed', branch: 'agent/T1-x' } } }),
+    );
+    const logs: string[] = [];
+    const orig = process.cwd();
+    process.chdir(dir);
+    const cmd = new Status([], {} as never);
+    cmd.log = (m?: unknown) => logs.push(String(m));
+    try {
+      await cmd.run();
+    } finally {
+      process.chdir(orig);
+    }
+    const joined = logs.join('\n');
+    expect(joined).toContain('T1');
+    expect(joined).toContain('completed');
+  });
+});
+```
+
+- [ ] **Step 2: Implement `status.ts`**
+
+```ts
+import { Command } from '@oclif/core';
+import { StateStore } from '@arandano/core';
+import { join } from 'node:path';
+
+export default class Status extends Command {
+  static override description = 'Show task status from .arandano/state.json';
+  async run(): Promise<void> {
+    const store = new StateStore(join(process.cwd(), '.arandano', 'state.json'));
+    const state = await store.read();
+    const ids = Object.keys(state.tasks).sort();
+    if (ids.length === 0) {
+      this.log('no tasks tracked yet');
+      return;
+    }
+    this.log('TASK    STATUS        BRANCH                                    PR');
+    for (const id of ids) {
+      const t = state.tasks[id];
+      this.log(
+        `${id.padEnd(7)} ${(t?.status ?? '?').padEnd(13)} ${(t?.branch ?? '').padEnd(40)}  ${t?.pr_url ?? ''}`,
+      );
+    }
+  }
+}
+```
+
+- [ ] **Step 3: Run tests, commit**
+
+```bash
+npm test -- status
+git add packages/cli/
+git commit -m "feat(cli): arandano status command"
+```
+
+---
+
+### Task 8: `arandano retry`, `arandano cleanup`, `arandano doctor`
+
+**Goal:** Three management commands.
+
+- `retry T1` — clears the `failed` status for `T1` so the next `run` picks it up; deletes the agent branch locally.
+- `cleanup` — removes `.arandano/runs/` and dangling agent branches with no open PR.
+- `doctor` — verifies Docker reachable, image pullable, gh authenticated, repo clean. Prints a checklist.
+
+**Files:**
+
+- Create: `packages/cli/src/commands/retry.ts`, `cleanup.ts`, `doctor.ts`
+- Tests for each in `packages/cli/src/__tests__/`
+
+- [ ] **Step 1: Implement `retry.ts`**
+
+```ts
+import { Args, Command } from '@oclif/core';
+import { StateStore } from '@arandano/core';
+import { join } from 'node:path';
+
+export default class Retry extends Command {
+  static override description = 'Reset a failed task so the next run picks it up.';
+  static override args = { taskId: Args.string({ required: true }) };
+  async run(): Promise<void> {
+    const { args } = await this.parse(Retry);
+    const store = new StateStore(join(process.cwd(), '.arandano', 'state.json'));
+    const cur = (await store.read()).tasks[args.taskId];
+    if (!cur) throw new Error(`unknown task: ${args.taskId}`);
+    if (cur.status !== 'failed')
+      throw new Error(`task ${args.taskId} is ${cur.status}, not failed`);
+    await store.update(args.taskId, {
+      status: 'pending',
+      last_error: undefined,
+      attempts: (cur.attempts ?? 0) + 1,
+    });
+    this.log(`reset ${args.taskId}`);
+  }
+}
+```
+
+- [ ] **Step 2: Implement `cleanup.ts`**
+
+```ts
+import { Command, Flags } from '@oclif/core';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const exec = promisify(execFile);
+
+export default class Cleanup extends Command {
+  static override description = 'Remove run artifacts and merged agent branches.';
+  static override flags = {
+    dry: Flags.boolean({ description: 'print what would be removed but do not delete' }),
+  };
+  async run(): Promise<void> {
+    const { flags } = await this.parse(Cleanup);
+    const root = process.cwd();
+    const runs = join(root, '.arandano', 'runs');
+    if (flags.dry) this.log(`would remove ${runs}`);
+    else await rm(runs, { recursive: true, force: true });
+
+    // Delete merged agent/* branches with no open PR.
+    const { stdout } = await exec('git', ['branch', '--list', 'agent/*'], { cwd: root });
+    const branches = stdout
+      .split('\n')
+      .map((s) => s.trim().replace(/^\* /, ''))
+      .filter(Boolean);
+    for (const b of branches) {
+      const merged = await exec('git', ['merge-base', '--is-ancestor', b, 'main'], { cwd: root })
+        .then(() => true)
+        .catch(() => false);
+      if (!merged) continue;
+      if (flags.dry) this.log(`would delete branch ${b}`);
+      else await exec('git', ['branch', '-d', b], { cwd: root });
+    }
+  }
+}
+```
+
+- [ ] **Step 3: Implement `doctor.ts`**
+
+```ts
+import { Command } from '@oclif/core';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+const exec = promisify(execFile);
+
+export default class Doctor extends Command {
+  static override description = 'Verify Docker, gh, and repo state.';
+  async run(): Promise<void> {
+    const checks: Array<{ name: string; ok: boolean; detail?: string }> = [];
+    const root = process.cwd();
+
+    checks.push(
+      await tryCheck('docker available', () =>
+        exec('docker', ['version', '--format', '{{.Server.Version}}']),
+      ),
+    );
+    checks.push(await tryCheck('gh authenticated', () => exec('gh', ['auth', 'status'])));
+    checks.push(
+      await tryCheck('config.yaml present', async () => {
+        await readFile(join(root, '.arandano', 'config.yaml'), 'utf8');
+      }),
+    );
+    checks.push(
+      await tryCheck('git working tree clean', async () => {
+        const { stdout } = await exec('git', ['status', '--porcelain']);
+        if (stdout.trim()) throw new Error('dirty');
+      }),
+    );
+
+    for (const c of checks) {
+      this.log(`${c.ok ? 'ok' : 'FAIL'}  ${c.name}${c.detail ? ' — ' + c.detail : ''}`);
+    }
+    if (checks.some((c) => !c.ok)) this.exit(1);
+  }
+}
+
+async function tryCheck<T>(
+  name: string,
+  fn: () => Promise<T>,
+): Promise<{ name: string; ok: boolean; detail?: string }> {
+  try {
+    await fn();
+    return { name, ok: true };
+  } catch (e) {
+    return { name, ok: false, detail: (e as Error).message };
+  }
+}
+```
+
+- [ ] **Step 4: Tests for each**
+
+For `retry`: seed `state.json` with a failed task; assert it becomes pending after `retry`.
+
+For `cleanup`: seed `.arandano/runs/x/`; assert it's gone.
+
+For `doctor`: hard to unit-test cleanly — write one test that exercises the pure tryCheck helper. Real verification is manual (Step 6).
+
+- [ ] **Step 5: Run tests, commit**
+
+```bash
+npm test
+git add packages/cli/
+git commit -m "feat(cli): retry, cleanup, doctor commands"
+```
+
+- [ ] **Step 6: Manual smoke**
+
+```bash
+node ./packages/cli/dist/bin.js doctor
+```
+
+Expected: prints 4 checks; all `ok` if your env is set up.
+
+---
+
+### Task 9: `arandano memory promote` and `arandano issue` commands
+
+**Goal:** Two thin commands over the markdown-as-database substrate. `memory promote` extracts a snippet from a run's `journal.md` and appends to `planning/memory/coding-standards.md`. `issue open|close|list` manages `planning/issues/`.
+
+**Files:**
+
+- Create: `packages/cli/src/commands/memory/promote.ts`
+- Create: `packages/cli/src/commands/issue/{open,close,list}.ts`
+- Tests in `__tests__/`
+
+- [ ] **Step 1: Implement `memory/promote.ts`**
+
+````ts
+import { Args, Command, Flags } from '@oclif/core';
+import { appendFile, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+export default class MemoryPromote extends Command {
+  static override description =
+    'Append a finding from a run journal to planning/memory/coding-standards.md';
+  static override args = {
+    runFolder: Args.string({ required: true, description: 'e.g. 2026-05-08T19-30Z-T1' }),
+  };
+  static override flags = {
+    section: Flags.string({ required: true }),
+    rule: Flags.string({ required: true }),
+  };
+  async run(): Promise<void> {
+    const { args, flags } = await this.parse(MemoryPromote);
+    const root = process.cwd();
+    const journal = await readFile(
+      join(root, '.arandano', 'runs', args.runFolder, 'journal.md'),
+      'utf8',
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    const block = [
+      ``,
+      `### ${flags.section} (${today}, from run ${args.runFolder})`,
+      ``,
+      `**Rule:** ${flags.rule}`,
+      ``,
+      `**Source excerpt:**`,
+      ``,
+      '```',
+      journal.slice(0, 800),
+      '```',
+      ``,
+    ].join('\n');
+    await appendFile(join(root, 'planning', 'memory', 'coding-standards.md'), block, 'utf8');
+    this.log(`appended to planning/memory/coding-standards.md`);
+  }
+}
+````
+
+- [ ] **Step 2: Implement `issue/open.ts`**
+
+```ts
+import { Args, Command, Flags } from '@oclif/core';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+export default class IssueOpen extends Command {
+  static override description = 'Create a new issue MD under planning/issues/';
+  static override args = { slug: Args.string({ required: true }) };
+  static override flags = {
+    title: Flags.string({ required: true }),
+    labels: Flags.string({ description: 'comma-separated' }),
+  };
+  async run(): Promise<void> {
+    const { args, flags } = await this.parse(IssueOpen);
+    const today = new Date().toISOString().slice(0, 10);
+    const fname = `${today}-${args.slug}.md`;
+    const path = join(process.cwd(), 'planning', 'issues', fname);
+    await mkdir(join(process.cwd(), 'planning', 'issues'), { recursive: true });
+    const labels =
+      flags.labels
+        ?.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean) ?? [];
+    await writeFile(
+      path,
+      [
+        `---`,
+        `title: ${flags.title}`,
+        `status: open`,
+        `labels: [${labels.join(', ')}]`,
+        `---`,
+        ``,
+        `## What`,
+        ``,
+        `## Repro`,
+        ``,
+        `## Expected`,
+        ``,
+      ].join('\n'),
+      'utf8',
+    );
+    this.log(`opened ${path}`);
+  }
+}
+```
+
+- [ ] **Step 3: Implement `issue/close.ts` and `issue/list.ts`** — analogous, flipping `status: open` → `closed`, listing all issue files with their `status` and `labels`.
+
+- [ ] **Step 4: Tests**
+
+For `issue open`, run the command in a tmp dir, assert the file exists with the right frontmatter.
+For `memory promote`, seed a run journal, run the command, assert the standards file was appended to.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add packages/cli/
+git commit -m "feat(cli): memory promote and issue open/close/list"
+```
+
+---
+
+### Task 10: Python stack scaffold + worker preflight
+
+**Goal:** `arandano init --stack=python` produces a Python project with full quality config. Worker has matching gate runners.
+
+**Files:**
+
+- Create: `packages/templates/stacks/python/` (mirror node-ts structure with python tools)
+- Modify: `packages/templates/src/scaffold.ts` (no changes — it already loops generic file lists)
+- Modify: `packages/cli/src/commands/init.ts` (allow `--stack=python`)
+- Create: `arandano-worker/lib/src/gates/python/{format,lint,typecheck,test,coverage,security}.ts`
+- Modify: `arandano-worker/lib/src/driver.ts` (detect stack and pick gate set)
+
+- [ ] **Step 1: Create the Python template files**
+
+`packages/templates/stacks/python/AGENTS.md.tpl` — like Node-TS but with Python in the tech stack.
+
+`pyproject.toml.tpl`:
+
+```toml
+[project]
+name = "{{name}}"
+version = "0.0.0"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "S", "B", "A"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+
+[tool.pytest.ini_options]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=80"
+testpaths = ["tests"]
+```
+
+`.commitlintrc.cjs` — same as node-ts.
+
+`.github/workflows/ci.yml`:
+
+```yaml
+name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+permissions: { contents: read }
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -e '.[dev]' ruff mypy pytest pytest-cov pip-audit
+      - run: ruff format --check .
+      - run: ruff check .
+      - run: mypy src
+      - run: pytest
+      - run: pip-audit
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+```
+
+`.arandano/config.yaml.tpl` — set `stack: python` and `roles.coder.cli: claude-code`.
+
+`src/CONTEXT.md` — note: tests live in `tests/test_<module>.py`, run with `pytest`.
+
+(Mirror the rest of the Node-TS files: roles, planning, docs, ops.)
+
+- [ ] **Step 2: Update `init.ts` to accept python**
+
+Replace the Phase 1 guard:
+
+```ts
+if (!isSupportedStack(flags.stack)) throw new Error(`unsupported stack: ${flags.stack}`);
+if (!['node-ts', 'python'].includes(flags.stack)) {
+  throw new Error(`stack ${flags.stack} not supported until Phase 2`);
+}
+await scaffold({ stack: flags.stack as 'node-ts' | 'python' /* ... */ });
+```
+
+Also widen the type of `ScaffoldOpts['stack']` to `'node-ts' | 'python'`.
+
+- [ ] **Step 3: Implement Python gate runners**
+
+`lib/src/gates/python/format.ts`:
+
+```ts
+import { runShell } from '../_shell.js';
+export const formatGate = (cwd: string) =>
+  runShell({ cmd: 'ruff', args: ['format', '--check', '.'], cwd });
+```
+
+Similarly: `lint` (`ruff check .`), `typecheck` (`mypy src`), `test` (`pytest`), `coverage` (`pytest --cov=src --cov-fail-under=80`), `security` (`pip-audit`).
+
+- [ ] **Step 4: Update worker `driver.ts` to read stack from `.arandano/config.yaml`**
+
+```ts
+import yaml from 'yaml';
+import { readFile } from 'node:fs/promises';
+
+const cfg = yaml.parse(await readFile(join(workspace, '.arandano', 'config.yaml'), 'utf8')) as {
+  project: { stack: 'node-ts' | 'python' | 'go' };
+};
+const stack = cfg.project.stack;
+
+const gateMap = {
+  'node-ts': await import('./gates/index.js'),
+  python: await import('./gates/python/index.js'),
+  go: await import('./gates/go/index.js'),
+};
+const gates = gateMap[stack];
+```
+
+Then use `gates.formatGate`, etc., in the `runGates({ gates: { ... } })` call.
+
+- [ ] **Step 5: Add a Python toy under `arandano-examples/python-cli-toy/` and run end-to-end**
+
+```bash
+cd ../arandano-examples
+mkdir python-cli-toy && cd python-cli-toy
+node ../../arandano/packages/cli/dist/bin.js init --stack=python --name=python-cli-toy --worker-image=ghcr.io/nmunozsi/arandano-worker:0.0.0
+# add task MD; run; verify PR opens
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+# in arandano
+git add packages/templates/stacks/python/ packages/cli/
+git commit -m "feat(templates,cli): python stack scaffold"
+
+# in arandano-worker
+git add lib/
+git commit -m "feat(lib): python quality gate runners"
+```
+
+---
+
+### Task 11: Go stack scaffold + worker preflight
+
+Same shape as Task 10 with Go tooling. Files:
+
+- `packages/templates/stacks/go/`:
+  - `go.mod.tpl` (`module {{name}}`, `go 1.23`)
+  - `.golangci.yml` enabling default linters
+  - `.github/workflows/ci.yml` running `gofmt -l`, `golangci-lint run`, `go test ./...`, `govulncheck ./...`
+  - role MDs, scaffold structure
+- `arandano-worker/lib/src/gates/go/{format,lint,test,coverage,security}.ts` — wrapping `gofmt`, `golangci-lint run`, `go test ./...`, `go test -coverprofile`, `govulncheck`.
+- Update `init.ts` to accept `--stack=go`.
+
+Smoke-test with a Go toy in `arandano-examples/go-toy/`.
+
+- [ ] **Step 1: Create Go template tree** (mirror previous tasks)
+
+- [ ] **Step 2: Implement Go gate wrappers**
+
+- [ ] **Step 3: Add Go toy and verify PR opens**
+
+- [ ] **Step 4: Commit (in both repos)**
+
+```bash
+git add packages/templates/stacks/go/ packages/cli/
+git commit -m "feat(templates,cli): go stack scaffold"
+```
+
+```bash
+# in arandano-worker
+git add lib/
+git commit -m "feat(lib): go quality gate runners"
+```
+
+---
+
+### Task 12: End-to-end batched run on the node-ts toy
+
+**Goal:** Author a 3-task plan in the toy repo, run with `arandano run --plan=<slug>`, watch all three PRs open in parallel (capped at `max_parallel`).
+
+- [ ] **Step 1: In the node-ts-toy, raise `max_parallel: 3` in `config.yaml`**
+
+- [ ] **Step 2: Write three small tasks**
+
+`.arandano/tasks/2026-05-08-three-helpers/T1-add-uppercase.md` — adds `src/uppercase.ts` + test.
+`T2-add-lowercase.md` — adds `src/lowercase.ts` + test.
+`T3-add-titlecase.md` — depends_on: [T1, T2], composes both.
+
+- [ ] **Step 3: Run**
+
+```bash
+node ../../arandano/packages/cli/dist/bin.js run --plan=2026-05-08-three-helpers
+```
+
+Expected: T1 and T2 run in parallel; T3 waits for both; all three PRs open with all gates green.
+
+- [ ] **Step 4: Verify with `arandano status`**
+
+```bash
+node ../../arandano/packages/cli/dist/bin.js status
+```
+
+Expected: all three rows show `completed` with PR URLs.
+
+- [ ] **Step 5: Document in examples README**
+
+```markdown
+## Multi-task plan example
+
+`.arandano/tasks/2026-05-08-three-helpers/` — three tasks ([T1](.../pull/2), [T2](.../pull/3), [T3](.../pull/4)) demonstrating parallel dispatch and dependency wiring.
+```
+
+---
+
+## Phase 2 done — exit criteria
+
+- [ ] `arandano run --plan=<slug>` runs an entire DAG with `max_parallel` parallelism
+- [ ] Reviewer tasks auto-spawn after coder tasks when `reviewer_required: true`; secrets in diffs trigger `request_changes`
+- [ ] `arandano init --stack=python` and `--stack=go` produce buildable scaffolds
+- [ ] Worker runs the right gate set for the project's stack (Node-TS, Python, or Go)
+- [ ] `arandano status`, `retry`, `cleanup`, `doctor`, `memory promote`, and `issue {open,close,list}` work end-to-end
+- [ ] Three example projects (node-ts-toy, python-cli-toy, go-toy) each have at least one fully agent-authored PR
+
+After this, the next plan covers **Phase 3 — multi-provider CLI selection (OpenCode, Gemini, Codex), coverage delta vs. base branch, and security as a required gate**.

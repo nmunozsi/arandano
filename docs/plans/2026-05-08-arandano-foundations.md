@@ -114,7 +114,7 @@ arandano-examples/                     (new — gh repo create)
 - Create: `.github/PULL_REQUEST_TEMPLATE.md`
 - Create: `.github/ISSUE_TEMPLATE/bug_report.md`
 
-- [ ] **Step 1: Verify gh auth and repo access**
+- [x] **Step 1: Verify gh auth and repo access**
 
 ```bash
 gh auth status
@@ -123,7 +123,7 @@ gh repo view nmunozsi/arandano --json name,owner
 
 Expected: authenticated as `nmunozsi`; repo visible.
 
-- [ ] **Step 2: If the working folder is not yet a git clone of the remote, attach it**
+- [x] **Step 2: If the working folder is not yet a git clone of the remote, attach it**
 
 ```bash
 git init
@@ -135,11 +135,11 @@ git checkout -B main
 
 Expected: `git status` shows we're on `main` with the existing files (`arandano-design.md`, `skool.md.ini`, `video_transcription.txt`).
 
-- [ ] **Step 3: Create `LICENSE` (MIT, year 2026, holder Nicolás Muñoz Silva)**
+- [x] **Step 3: Create `LICENSE` (MIT, year 2026, holder Nicolás Muñoz Silva)**
 
 Use the standard MIT template from https://opensource.org/license/mit (substitute `2026 Nicolás Muñoz Silva`).
 
-- [ ] **Step 4: Create `.gitignore`**
+- [x] **Step 4: Create `.gitignore`**
 
 ```gitignore
 # Node
@@ -170,13 +170,13 @@ Thumbs.db
 .env.*.local
 ```
 
-- [ ] **Step 5: Create `.nvmrc` (single line)**
+- [x] **Step 5: Create `.nvmrc` (single line)**
 
 ```
 22
 ```
 
-- [ ] **Step 6: Create `.editorconfig`**
+- [x] **Step 6: Create `.editorconfig`**
 
 ```ini
 root = true
