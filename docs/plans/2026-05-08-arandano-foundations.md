@@ -1901,7 +1901,7 @@ gh pr merge --squash --delete-branch
 
 - Create (in a sibling working directory `../arandano-worker/`): `LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.gitignore`, `Dockerfile`, `entrypoint.sh`, `lib/package.json`, `lib/tsconfig.json`, `lib/src/index.ts`, `lib/src/__tests__/smoke.test.ts`, `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Create the repo on GitHub**
+- [x] **Step 1: Create the repo on GitHub**
 
 ```bash
 gh repo create nmunozsi/arandano-worker \
@@ -1910,7 +1910,7 @@ gh repo create nmunozsi/arandano-worker \
   --description "OCI image for arandano coding-agent workers — sandcastle + superpowers + quality gates"
 ```
 
-- [ ] **Step 2: Clone it as a sibling of `arandano/`**
+- [x] **Step 2: Clone it as a sibling of `arandano/`**
 
 ```bash
 cd ..
@@ -1918,7 +1918,7 @@ gh repo clone nmunozsi/arandano-worker
 cd arandano-worker
 ```
 
-- [ ] **Step 3: Add the same OSS files as Task 1** (LICENSE may already exist from `--license MIT` — keep it; otherwise paste the MIT template).
+- [x] **Step 3: Add the same OSS files as Task 1** (LICENSE may already exist from `--license MIT` — keep it; otherwise paste the MIT template).
 
 Adapt `README.md` for the worker:
 
@@ -1940,7 +1940,7 @@ MIT.
 
 `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` mirror Task 1 with worker-flavored wording.
 
-- [ ] **Step 4: Create `Dockerfile` (multi-stage skeleton)**
+- [x] **Step 4: Create `Dockerfile` (multi-stage skeleton)**
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
@@ -1972,7 +1972,7 @@ WORKDIR /workspace
 ENTRYPOINT ["/entrypoint.sh"]
 ```
 
-- [ ] **Step 5: Create `entrypoint.sh` placeholder**
+- [x] **Step 5: Create `entrypoint.sh` placeholder**
 
 ```sh
 #!/usr/bin/env sh
@@ -1986,7 +1986,7 @@ echo "  workdir=$(pwd)"
 exit 0
 ```
 
-- [ ] **Step 6: Create `lib/` Node helper skeleton**
+- [x] **Step 6: Create `lib/` Node helper skeleton**
 
 `lib/package.json`:
 
@@ -2053,7 +2053,7 @@ describe('arandano-worker lib', () => {
 });
 ```
 
-- [ ] **Step 7: Install and verify**
+- [x] **Step 7: Install and verify**
 
 ```bash
 cd lib && npm install && npm run build && npm test && cd ..
@@ -2066,7 +2066,7 @@ Expected: build succeeds; running it prints the placeholder message:
 docker run --rm arandano-worker:dev
 ```
 
-- [ ] **Step 8: Add CI workflow**
+- [x] **Step 8: Add CI workflow**
 
 `.github/workflows/ci.yml`:
 
@@ -2094,7 +2094,7 @@ jobs:
       - run: docker run --rm arandano-worker:ci
 ```
 
-- [ ] **Step 9: Commit and push**
+- [x] **Step 9: Commit and push**
 
 ```bash
 git add .
@@ -2116,7 +2116,7 @@ Expected: green.
 
 **Goal:** A third GitHub repo exists with OSS scaffolding and a placeholder README listing the examples that will land in Phase 1.
 
-- [ ] **Step 1: Create the repo on GitHub**
+- [x] **Step 1: Create the repo on GitHub**
 
 ```bash
 gh repo create nmunozsi/arandano-examples \
@@ -2125,7 +2125,7 @@ gh repo create nmunozsi/arandano-examples \
   --description "Sample projects scaffolded by arandano init (Node-TS, Python, static site)"
 ```
 
-- [ ] **Step 2: Clone it as a sibling**
+- [x] **Step 2: Clone it as a sibling**
 
 ```bash
 cd ..
@@ -2133,7 +2133,7 @@ gh repo clone nmunozsi/arandano-examples
 cd arandano-examples
 ```
 
-- [ ] **Step 3: Add OSS files** (LICENSE if not already present, README.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .gitignore)
+- [x] **Step 3: Add OSS files** (LICENSE if not already present, README.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, .gitignore)
 
 `README.md`:
 
@@ -2168,7 +2168,7 @@ __pycache__/
 .env
 ```
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 ```bash
 git add .
@@ -2182,14 +2182,14 @@ Expected: push succeeds; repo is visible on github.com.
 
 ## Phase 0 done — exit criteria
 
-- [ ] `https://github.com/nmunozsi/arandano` has CI green on `main` with all quality gates running
-- [ ] `npm ci && npm run build && npm test` succeeds locally
-- [ ] `@arandano/core` exports `VERSION`, parses task MDs, loads configs, manages run state — all with passing TDD-authored tests
-- [ ] `@arandano/executors-docker`, `@arandano/templates`, `@arandano/skills`, `@arandano/cli` all exist as buildable, type-safe stub packages
-- [ ] `https://github.com/nmunozsi/arandano-worker` has CI green; placeholder Docker image builds and runs
-- [ ] `https://github.com/nmunozsi/arandano-examples` exists with README listing planned examples
-- [ ] All three repos carry MIT LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT
-- [ ] commitlint + husky enforce conventional commits in `arandano`
-- [ ] `gitleaks` runs in CI for `arandano`
+- [x] `https://github.com/nmunozsi/arandano` has CI green on `main` with all quality gates running
+- [x] `npm ci && npm run build && npm test` succeeds locally
+- [x] `@arandano/core` exports `VERSION`, parses task MDs, loads configs, manages run state — all with passing TDD-authored tests
+- [x] `@arandano/executors-docker`, `@arandano/templates`, `@arandano/skills`, `@arandano/cli` all exist as buildable, type-safe stub packages
+- [x] `https://github.com/nmunozsi/arandano-worker` has CI green; placeholder Docker image builds and runs
+- [x] `https://github.com/nmunozsi/arandano-examples` exists with README listing planned examples
+- [x] All three repos carry MIT LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT
+- [x] commitlint + husky enforce conventional commits in `arandano`
+- [x] `gitleaks` runs in CI for `arandano`
 
 After this, the next plan covers **Phase 1: Single-task MVP, Node-TS stack, worker preflight** — implements `arandano init --stack=node-ts` and `arandano run <task-id>` end-to-end against local Docker.
