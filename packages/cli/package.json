@@ -27,8 +27,10 @@
   },
   "dependencies": {
     "@arandano/core": "0.0.0",
+    "@arandano/executors-docker": "^0.0.0",
     "@arandano/templates": "^0.0.0",
-    "@oclif/core": "^4.0.0"
+    "@oclif/core": "^4.0.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "oclif": "^4.0.0"

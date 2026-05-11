@@ -58,7 +58,7 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
       ...existing,
       status: result.reason === 'ok' ? 'completed' : 'failed',
       finished_at: new Date().toISOString(),
-      error: result.reason !== 'ok' ? result.reason : undefined,
+      ...(result.reason !== 'ok' ? { error: result.reason } : {}),
     };
   });
 
