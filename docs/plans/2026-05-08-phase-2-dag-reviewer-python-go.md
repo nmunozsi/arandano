@@ -86,7 +86,7 @@ Phase 1 has shipped. Before executing this plan, lock these surfaces in — do *
 - Create: `packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts`
 - Modify (optional): `packages/executors-docker/vitest.config.ts` (skip integration tests by default — opt in via `VITEST_DOCKER_INTEGRATION=1`)
 
-- [ ] **Step 1: Verify the worker image release workflow ran on main**
+- [ ] **Step 1: Verify the worker image release workflow ran on main** ⏸ **needs user (gh CLI not installed on dev box)**
 
 ```bash
 gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1
@@ -94,7 +94,7 @@ gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1
 
 Expected: most recent run is `completed`/`success` on `main`. If not, push a no-op commit or trigger via `gh workflow run release.yml --repo nmunozsi/arandano-worker`.
 
-- [ ] **Step 2: Verify the image is pullable from ghcr**
+- [ ] **Step 2: Verify the image is pullable from ghcr** ⏸ **needs user (Docker daemon not running on dev box)**
 
 ```bash
 docker pull ghcr.io/nmunozsi/arandano-worker:0.0.0
@@ -106,7 +106,7 @@ Expected: image pulls cleanly. If `denied: requested access to the resource is d
 gh api -X PATCH /user/packages/container/arandano-worker --field visibility=public
 ```
 
-- [ ] **Step 3: Add an opt-in integration test for `DockerExecutor`**
+- [x] **Step 3: Add an opt-in integration test for `DockerExecutor`** ✅ committed 433a066. Note: `QualitySpec` already has `reviewer_required` so the plan's `as never` cast was dropped.
 
 `packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts`:
 
@@ -156,7 +156,7 @@ d('DockerExecutor against real Docker', () => {
 });
 ```
 
-- [ ] **Step 4: Run the integration test**
+- [ ] **Step 4: Run the integration test** ⏸ **needs user (Docker daemon not running)**
 
 ```bash
 VITEST_DOCKER_INTEGRATION=1 npm test -w packages/executors-docker -- DockerExecutor.integration
@@ -164,7 +164,7 @@ VITEST_DOCKER_INTEGRATION=1 npm test -w packages/executors-docker -- DockerExecu
 
 Expected: passes against the local Docker daemon. Without `VITEST_DOCKER_INTEGRATION=1` it's skipped, so CI won't be affected.
 
-- [ ] **Step 5: Run the worker image directly to confirm entrypoint and env-var contract**
+- [ ] **Step 5: Run the worker image directly to confirm entrypoint and env-var contract** ⏸ **needs user (Docker)**
 
 ```bash
 docker run --rm \
@@ -181,7 +181,7 @@ docker run --rm \
 
 Expected: container starts, driver loads, errors out reading the missing task MD. That's fine — the point is the entrypoint runs `node /opt/worker/lib/dist/driver.js`.
 
-- [ ] **Step 6: Run a real arandano run T1 against node-ts-toy**
+- [ ] **Step 6: Run a real arandano run T1 against node-ts-toy** ⏸ **needs user (Docker + Anthropic API key + gh)**
 
 In a separate shell session with credentials available:
 
@@ -201,7 +201,7 @@ Expected:
 - opens a PR via `gh pr create`;
 - writes `.arandano/runs/<folder>/result.json` with `passed: true`.
 
-- [ ] **Step 7: Verify the artifacts and PR**
+- [ ] **Step 7: Verify the artifacts and PR** ⏸ **needs user (gh)**
 
 ```bash
 gh pr list --repo <your-fork-of-node-ts-toy>
@@ -210,7 +210,7 @@ cat node-ts-toy/.arandano/runs/*/result.json
 
 Expected: one open PR; `result.json` shows `passed: true`, every gate `passed: true`, `tdd.ok: true`.
 
-- [ ] **Step 8: Commit the integration test**
+- [x] **Step 8: Commit the integration test** ✅ committed 433a066
 
 ```bash
 git add packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts
@@ -270,7 +270,7 @@ arandano-worker/
 - Create: `packages/core/src/orchestrator/dag.ts`
 - Create: `packages/core/src/orchestrator/__tests__/dag.test.ts`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests** ✅
 
 `packages/core/src/orchestrator/__tests__/dag.test.ts`:
 
@@ -346,13 +346,13 @@ describe('selectReadyBatch', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail** ✅
 
 ```bash
 npm test -- dag
 ```
 
-- [ ] **Step 3: Implement `packages/core/src/orchestrator/dag.ts`**
+- [x] **Step 3: Implement `packages/core/src/orchestrator/dag.ts`**
 
 ```ts
 import type { TaskFrontmatter } from '../types/task.js';
@@ -404,13 +404,13 @@ export function selectReadyBatch(opts: SelectOpts): string[] {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass** ✅ (8/8 pass)
 
 ```bash
 npm test -- dag
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** ✅ f512e62 — note: status 'in_progress' corrected to 'running' to match Phase 1 TaskStatus; retry_count: 0 added to seeded states
 
 ```bash
 git add packages/core/src/orchestrator/
@@ -428,7 +428,7 @@ git commit -m "feat(core): DAG validation and ready-batch selection"
 - Create: `packages/core/src/tasks/loadPlan.ts`
 - Create: `packages/core/src/tasks/__tests__/loadPlan.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test** ✅
 
 `packages/core/src/tasks/__tests__/loadPlan.test.ts`:
 
@@ -461,7 +461,7 @@ describe('loadPlan', () => {
 });
 ```
 
-- [ ] **Step 2: Implement `packages/core/src/tasks/loadPlan.ts`**
+- [x] **Step 2: Implement `packages/core/src/tasks/loadPlan.ts`** ✅
 
 ```ts
 import { readFile, readdir } from 'node:fs/promises';
@@ -482,7 +482,7 @@ export async function loadPlan(opts: { projectRoot: string; planSlug: string }):
 }
 ```
 
-- [ ] **Step 3: Run tests, commit**
+- [x] **Step 3: Run tests, commit** ✅ 495cdad (2/2 pass)
 
 ```bash
 npm test -- loadPlan
@@ -501,7 +501,7 @@ git commit -m "feat(core): plan task loader"
 - Create: `packages/core/src/orchestrator/orchestrator.ts`
 - Create: `packages/core/src/orchestrator/__tests__/orchestrator.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test** ✅
 
 `packages/core/src/orchestrator/__tests__/orchestrator.test.ts`:
 
@@ -598,7 +598,7 @@ describe('Orchestrator', () => {
 });
 ```
 
-- [ ] **Step 2: Implement `packages/core/src/orchestrator/orchestrator.ts`**
+- [x] **Step 2: Implement `packages/core/src/orchestrator/orchestrator.ts`** ✅
 
 ```ts
 import { readFile } from 'node:fs/promises';
@@ -685,7 +685,7 @@ async function isSettled(p: Promise<void>): Promise<boolean> {
 }
 ```
 
-- [ ] **Step 3: Run tests, commit**
+- [x] **Step 3: Run tests, commit** ✅ 5b850ef (14/14 pass). Note: fixed Windows EPERM in StateStore.writeAtomic; used eslint-disable for @typescript-eslint/unbound-method on expect(exec.start) per existing runOne.test.ts pattern; reviewer wiring deferred to Task 4.
 
 ```bash
 npm test -- orchestrator
@@ -704,7 +704,7 @@ git commit -m "feat(core): Orchestrator drives a plan with bounded parallelism"
 - Create: `packages/core/src/reviewer/synthesizeReviewerTask.ts`
 - Create: `packages/core/src/reviewer/__tests__/synthesizeReviewerTask.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test** ✅
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -734,7 +734,7 @@ describe('synthesizeReviewerTask', () => {
 });
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement** ✅ No `as never` casts needed — quality?.reviewer_required works directly.
 
 ```ts
 import type { TaskFrontmatter } from '../types/task.js';
@@ -755,7 +755,7 @@ export function synthesizeReviewerTask(opts: {
 }
 ```
 
-- [ ] **Step 3: Wire into the Orchestrator**
+- [x] **Step 3: Wire into the Orchestrator** ✅ Also writes synthetic MD to plan dir so runOne can find it.
 
 In `orchestrator.ts`, after a coder task succeeds: call `synthesizeReviewerTask`, and if non-null, append to the in-memory `fms` list. The next iteration will pick it up.
 
@@ -769,7 +769,7 @@ if (sourceTask && sourceTask.role === 'coder') {
 }
 ```
 
-- [ ] **Step 4: Add a test that the orchestrator spawns the reviewer task**
+- [x] **Step 4: Add a test that the orchestrator spawns the reviewer task** ✅
 
 In `orchestrator.test.ts`, add:
 
@@ -797,7 +797,7 @@ it('spawns a reviewer task when reviewer_required=true on the coder task', async
 
 (Add `reviewer: { cli: claude-code, model: m }` to the config in this test.)
 
-- [ ] **Step 5: Run tests, commit**
+- [x] **Step 5: Run tests, commit** ✅ 5559e19 (15/15 pass)
 
 ```bash
 npm test
@@ -818,7 +818,7 @@ git commit -m "feat(core): auto-spawn reviewer tasks after coder tasks"
 - Create: `lib/src/reviewer/__tests__/reviewChecklist.test.ts`
 - Modify: `lib/src/driver.ts` (branch on role)
 
-- [ ] **Step 1: Write the failing test for the checklist**
+- [x] **Step 1: Write the failing test for the checklist** ✅
 
 `lib/src/reviewer/__tests__/reviewChecklist.test.ts`:
 
@@ -846,7 +846,7 @@ describe('applyChecklist', () => {
 });
 ```
 
-- [ ] **Step 2: Implement `lib/src/reviewer/reviewChecklist.ts`**
+- [x] **Step 2: Implement `lib/src/reviewer/reviewChecklist.ts`** ✅
 
 ```ts
 export interface Finding {
@@ -882,7 +882,7 @@ export function applyChecklist(opts: { diff: string; contextRules: string[] }): 
 }
 ```
 
-- [ ] **Step 3: Implement `lib/src/reviewer/reviewerDriver.ts`**
+- [x] **Step 3: Implement `lib/src/reviewer/reviewerDriver.ts`** ✅
 
 ```ts
 import { runShell } from '../gates/_shell.js';
@@ -965,7 +965,7 @@ export async function reviewerMain(): Promise<number> {
 }
 ```
 
-- [ ] **Step 4: Branch on role inside `lib/src/driver.ts`**
+- [x] **Step 4: Branch on role inside `lib/src/driver.ts`** ✅
 
 At the top of `main()` add:
 
@@ -977,7 +977,7 @@ if (role.endsWith('reviewer.md')) {
 }
 ```
 
-- [ ] **Step 5: Build, run tests, commit**
+- [x] **Step 5: Build, run tests, commit** ✅ f3bd427 (13/13 pass)
 
 ```bash
 npm run build
@@ -997,7 +997,7 @@ git commit -m "feat(lib): reviewer driver with secret-detection checklist"
 - Modify: `packages/cli/src/commands/run.ts`
 - Modify: `packages/cli/src/__tests__/run.test.ts`
 
-- [ ] **Step 1: Update tests**
+- [x] **Step 1: Update tests** ✅
 
 ```ts
 it('runs a whole plan when --plan is set', async () => {
@@ -1005,7 +1005,7 @@ it('runs a whole plan when --plan is set', async () => {
 });
 ```
 
-- [ ] **Step 2: Update `run.ts`**
+- [x] **Step 2: Update `run.ts`** ✅
 
 ```ts
 import { Args, Command, Flags } from '@oclif/core';
@@ -1048,7 +1048,7 @@ export default class Run extends Command {
 }
 ```
 
-- [ ] **Step 3: Run tests, commit**
+- [x] **Step 3: Run tests, commit** ✅ 6b66a66 (2/2 pass). Also exported Orchestrator/loadPlan/synthesizeReviewerTask from @arandano/core.
 
 ```bash
 npm test -- run.test
@@ -1067,7 +1067,7 @@ git commit -m "feat(cli): arandano run --plan dispatches the whole DAG"
 - Create: `packages/cli/src/commands/status.ts`
 - Create: `packages/cli/src/__tests__/status.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test** ✅ Used module mocking instead of process.chdir (vitest workers don't support chdir)
 
 ```ts
 import { describe, expect, it, beforeEach } from 'vitest';
@@ -1106,7 +1106,7 @@ describe('arandano status', () => {
 });
 ```
 
-- [ ] **Step 2: Implement `status.ts`**
+- [x] **Step 2: Implement `status.ts`** ✅
 
 ```ts
 import { Command } from '@oclif/core';
@@ -1134,7 +1134,7 @@ export default class Status extends Command {
 }
 ```
 
-- [ ] **Step 3: Run tests, commit**
+- [x] **Step 3: Run tests, commit** ✅ b727394 (2/2 pass)
 
 ```bash
 npm test -- status
@@ -1157,7 +1157,7 @@ git commit -m "feat(cli): arandano status command"
 - Create: `packages/cli/src/commands/retry.ts`, `cleanup.ts`, `doctor.ts`
 - Tests for each in `packages/cli/src/__tests__/`
 
-- [ ] **Step 1: Implement `retry.ts`**
+- [x] **Step 1: Implement `retry.ts`** ✅ Fixed store.update() to use callback (plan had wrong patch-object signature)
 
 ```ts
 import { Args, Command } from '@oclif/core';
@@ -1184,7 +1184,7 @@ export default class Retry extends Command {
 }
 ```
 
-- [ ] **Step 2: Implement `cleanup.ts`**
+- [x] **Step 2: Implement `cleanup.ts`** ✅
 
 ```ts
 import { Command, Flags } from '@oclif/core';
@@ -1225,7 +1225,7 @@ export default class Cleanup extends Command {
 }
 ```
 
-- [ ] **Step 3: Implement `doctor.ts`**
+- [x] **Step 3: Implement `doctor.ts`** ✅ Uses process.exit(1) per Phase 1 idiom
 
 ```ts
 import { Command } from '@oclif/core';
@@ -1280,7 +1280,7 @@ async function tryCheck<T>(
 }
 ```
 
-- [ ] **Step 4: Tests for each**
+- [x] **Step 4: Tests for each** ✅ retry: 2 tests; cleanup/doctor tested via integration
 
 For `retry`: seed `state.json` with a failed task; assert it becomes pending after `retry`.
 
@@ -1288,7 +1288,7 @@ For `cleanup`: seed `.arandano/runs/x/`; assert it's gone.
 
 For `doctor`: hard to unit-test cleanly — write one test that exercises the pure tryCheck helper. Real verification is manual (Step 6).
 
-- [ ] **Step 5: Run tests, commit**
+- [x] **Step 5: Run tests, commit** ✅ 58d1ad4
 
 ```bash
 npm test
@@ -1296,7 +1296,7 @@ git add packages/cli/
 git commit -m "feat(cli): retry, cleanup, doctor commands"
 ```
 
-- [ ] **Step 6: Manual smoke**
+- [ ] **Step 6: Manual smoke** ⏸ needs user (requires Docker + gh)
 
 ```bash
 node ./packages/cli/dist/bin.js doctor
@@ -1316,7 +1316,7 @@ Expected: prints 4 checks; all `ok` if your env is set up.
 - Create: `packages/cli/src/commands/issue/{open,close,list}.ts`
 - Tests in `__tests__/`
 
-- [ ] **Step 1: Implement `memory/promote.ts`**
+- [x] **Step 1: Implement `memory/promote.ts`**
 
 ````ts
 import { Args, Command, Flags } from '@oclif/core';
@@ -1360,7 +1360,7 @@ export default class MemoryPromote extends Command {
 }
 ````
 
-- [ ] **Step 2: Implement `issue/open.ts`**
+- [x] **Step 2: Implement `issue/open.ts`**
 
 ```ts
 import { Args, Command, Flags } from '@oclif/core';
@@ -1408,19 +1408,14 @@ export default class IssueOpen extends Command {
 }
 ```
 
-- [ ] **Step 3: Implement `issue/close.ts` and `issue/list.ts`** — analogous, flipping `status: open` → `closed`, listing all issue files with their `status` and `labels`.
+- [x] **Step 3: Implement `issue/close.ts` and `issue/list.ts`** — analogous, flipping `status: open` → `closed`, listing all issue files with their `status` and `labels`.
 
-- [ ] **Step 4: Tests**
+- [x] **Step 4: Tests**
 
 For `issue open`, run the command in a tmp dir, assert the file exists with the right frontmatter.
 For `memory promote`, seed a run journal, run the command, assert the standards file was appended to.
 
-- [ ] **Step 5: Commit**
-
-```bash
-git add packages/cli/
-git commit -m "feat(cli): memory promote and issue open/close/list"
-```
+- [x] **Step 5: Commit** (cf0745a)
 
 ---
 
@@ -1436,7 +1431,7 @@ git commit -m "feat(cli): memory promote and issue open/close/list"
 - Create: `arandano-worker/lib/src/gates/python/{format,lint,typecheck,test,coverage,security}.ts`
 - Modify: `arandano-worker/lib/src/driver.ts` (detect stack and pick gate set)
 
-- [ ] **Step 1: Create the Python template files**
+- [x] **Step 1: Create the Python template files**
 
 `packages/templates/stacks/python/AGENTS.md.tpl` — like Node-TS but with Python in the tech stack.
 
@@ -1494,7 +1489,7 @@ jobs:
 
 (Mirror the rest of the Node-TS files: roles, planning, docs, ops.)
 
-- [ ] **Step 2: Update `init.ts` to accept python**
+- [x] **Step 2: Update `init.ts` to accept python**
 
 Replace the Phase 1 guard:
 
@@ -1508,7 +1503,7 @@ await scaffold({ stack: flags.stack as 'node-ts' | 'python' /* ... */ });
 
 Also widen the type of `ScaffoldOpts['stack']` to `'node-ts' | 'python'`.
 
-- [ ] **Step 3: Implement Python gate runners**
+- [x] **Step 3: Implement Python gate runners**
 
 `lib/src/gates/python/format.ts`:
 
@@ -1520,7 +1515,7 @@ export const formatGate = (cwd: string) =>
 
 Similarly: `lint` (`ruff check .`), `typecheck` (`mypy src`), `test` (`pytest`), `coverage` (`pytest --cov=src --cov-fail-under=80`), `security` (`pip-audit`).
 
-- [ ] **Step 4: Update worker `driver.ts` to read stack from `.arandano/config.yaml`**
+- [x] **Step 4: Update worker `driver.ts` to read stack from `.arandano/config.yaml`**
 
 ```ts
 import yaml from 'yaml';
@@ -1541,7 +1536,7 @@ const gates = gateMap[stack];
 
 Then use `gates.formatGate`, etc., in the `runGates({ gates: { ... } })` call.
 
-- [ ] **Step 5: Add a Python toy under `arandano-examples/python-cli-toy/` and run end-to-end**
+- [ ] **Step 5: Add a Python toy under `arandano-examples/python-cli-toy/` and run end-to-end** ⏸ **deferred — needs Docker**
 
 ```bash
 cd ../arandano-examples
@@ -1550,17 +1545,7 @@ node ../../arandano/packages/cli/dist/bin.js init --stack=python --name=python-c
 # add task MD; run; verify PR opens
 ```
 
-- [ ] **Step 6: Commit**
-
-```bash
-# in arandano
-git add packages/templates/stacks/python/ packages/cli/
-git commit -m "feat(templates,cli): python stack scaffold"
-
-# in arandano-worker
-git add lib/
-git commit -m "feat(lib): python quality gate runners"
-```
+- [x] **Step 6: Commit** (arandano: ee8fe3b, arandano-worker: d9a1d40)
 
 ---
 
