@@ -4,15 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 let dir: string;
-let cwdSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'arandano-memory-'));
-  cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(dir);
+  vi.spyOn(process, 'cwd').mockReturnValue(dir);
 });
 
 afterEach(async () => {
-  cwdSpy.mockRestore();
+  vi.restoreAllMocks();
   await rm(dir, { recursive: true, force: true });
 });
 

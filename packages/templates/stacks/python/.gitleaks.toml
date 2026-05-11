@@ -1,0 +1,4 @@
+title = "{{name}} gitleaks config"
+
+[allowlist]
+paths = ['''__pycache__/''', '''\.venv/''', '''\.egg-info/''']
