@@ -1,6 +1,7 @@
 import Docker from 'dockerode';
 
 export interface DockerClient {
+  pull(image: string): Promise<void>;
   createContainer(opts: unknown): Promise<{
     id: string;
     start(): Promise<void>;
@@ -17,5 +18,18 @@ export interface DockerClient {
 
 export function defaultClient(): DockerClient {
   const d = new Docker();
-  return d as unknown as DockerClient;
+  return {
+    pull(image: string): Promise<void> {
+      return new Promise<void>((resolve, reject) => {
+        void d.pull(image, (err: Error | null, stream: NodeJS.ReadableStream) => {
+          if (err) return reject(err);
+          d.modem.followProgress(stream, (progressErr: Error | null) => {
+            if (progressErr) reject(progressErr);
+            else resolve();
+          });
+        });
+      });
+    },
+    createContainer: d.createContainer.bind(d) as DockerClient['createContainer'],
+  };
 }

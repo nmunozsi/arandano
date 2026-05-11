@@ -43,7 +43,10 @@ const task: TaskRun = {
 describe('DockerExecutor', () => {
   it('starts a container and returns a handle', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
@@ -58,7 +61,10 @@ describe('DockerExecutor', () => {
 
   it('reports ok exit when container exits 0', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
@@ -76,7 +82,10 @@ describe('DockerExecutor', () => {
   it('reports error exit when container exits non-zero', async () => {
     const c = fakeContainer();
     c.wait = vi.fn(() => Promise.resolve({ StatusCode: 7 }));
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
@@ -92,7 +101,10 @@ describe('DockerExecutor', () => {
 
   it('cancel calls stop on the container', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',

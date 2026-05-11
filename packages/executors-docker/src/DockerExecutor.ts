@@ -38,6 +38,7 @@ export class DockerExecutor implements Executor {
       runFolder: folder,
       hostEnv: this.opts.hostEnv!,
     });
+    await this.opts.client!.pull(this.opts.image);
     const container = await this.opts.client!.createContainer(spec as unknown);
     await container.start();
     const id = `${task.taskId}::${container.id}`;
