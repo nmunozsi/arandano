@@ -1,5 +1,89 @@
 {
   "commands": {
+    "init": {
+      "aliases": [],
+      "args": {},
+      "description": "Scaffold an arandano project in the current directory.",
+      "flags": {
+        "stack": {
+          "description": "node-ts | python | go | polyglot",
+          "name": "stack",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "name": {
+          "description": "project name (interpolated into scaffold)",
+          "name": "name",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "target": {
+          "description": "target directory (defaults to cwd)",
+          "name": "target",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "worker-image": {
+          "description": "arandano worker image",
+          "name": "worker-image",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "license": {
+          "name": "license",
+          "default": "MIT",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "contact-email": {
+          "name": "contact-email",
+          "default": "you@example.com",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "init",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "init.js"]
+    },
+    "run": {
+      "aliases": [],
+      "args": {
+        "taskId": {
+          "description": "task id (e.g. T1)",
+          "name": "taskId",
+          "required": true
+        }
+      },
+      "description": "Dispatch a task to a local Docker worker.",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "run",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "run.js"]
+    },
     "version": {
       "aliases": [],
       "args": {},

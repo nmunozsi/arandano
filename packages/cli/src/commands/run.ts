@@ -22,6 +22,6 @@ export default class Run extends Command {
     const executor = new DockerExecutor({ image: cfg.executor.docker.image, projectRoot });
     const result = await runOne({ projectRoot, taskId: args.taskId, executor });
     this.log(`exit=${result.exitCode} reason=${result.reason}`);
-    if (result.exitCode !== 0) this.exit(result.exitCode);
+    if (result.exitCode !== 0) process.exit(result.exitCode);
   }
 }
