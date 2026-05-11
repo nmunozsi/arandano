@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@arandano/core": "0.0.0",
+    "@arandano/templates": "^0.0.0",
     "@oclif/core": "^4.0.0"
   },
   "devDependencies": {
