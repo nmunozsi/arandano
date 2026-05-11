@@ -13,6 +13,7 @@
   },
   "files": [
     "dist",
+    "stacks",
     "README.md"
   ],
   "scripts": {
@@ -21,7 +22,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@arandano/core": "0.0.0"
+    "@arandano/core": "0.0.0",
+    "globby": "^14.1.0"
   },
   "publishConfig": {
     "access": "public"
