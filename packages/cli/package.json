@@ -30,6 +30,7 @@
     "@arandano/executors-docker": "^0.0.0",
     "@arandano/templates": "^0.0.0",
     "@oclif/core": "^4.0.0",
+    "gray-matter": "^4.0.3",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
