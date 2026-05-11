@@ -1,20 +1,91 @@
-import type { Executor, Handle, ExitResult, TaskRun } from '@arandano/core';
+import type { Executor, ExitResult, Handle, TaskRun } from '@arandano/core';
+import { runArtifacts, runFolder } from '@arandano/core';
+import { buildContainerSpec } from './containerSpec.js';
+import { defaultClient, type DockerClient } from './client.js';
+
+export interface DockerExecutorOpts {
+  image: string;
+  projectRoot: string;
+  client?: DockerClient;
+  hostEnv?: Record<string, string | undefined>;
+  now?: () => Date;
+}
+
+type Container = Awaited<ReturnType<DockerClient['createContainer']>>;
 
 export class DockerExecutor implements Executor {
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async start(_task: TaskRun): Promise<Handle> {
-    throw new Error('DockerExecutor.start: not implemented (Phase 1)');
+  private readonly running = new Map<
+    string,
+    { containerId: string; container: Container; folder: string }
+  >();
+  private readonly opts: DockerExecutorOpts;
+
+  constructor(opts: DockerExecutorOpts) {
+    this.opts = {
+      client: defaultClient(),
+      hostEnv: process.env as Record<string, string | undefined>,
+      now: () => new Date(),
+      ...opts,
+    };
   }
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async wait(_h: Handle, _opts?: { timeoutMs: number }): Promise<ExitResult> {
-    throw new Error('DockerExecutor.wait: not implemented (Phase 1)');
+
+  async start(task: TaskRun): Promise<Handle> {
+    const folder = runFolder({ taskId: task.taskId, date: this.opts.now!() });
+    const spec = buildContainerSpec({
+      task,
+      image: this.opts.image,
+      projectRoot: this.opts.projectRoot,
+      runFolder: folder,
+      hostEnv: this.opts.hostEnv!,
+    });
+    const container = await this.opts.client!.createContainer(spec as unknown);
+    await container.start();
+    const id = `${task.taskId}::${container.id}`;
+    this.running.set(id, { containerId: container.id, container, folder });
+    return { id };
   }
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async *logs(_h: Handle, _opts?: { follow: boolean }): AsyncIterable<string> {
-    throw new Error('DockerExecutor.logs: not implemented (Phase 1)');
+
+  async wait(h: Handle, opts?: { timeoutMs: number }): Promise<ExitResult> {
+    const entry = this.running.get(h.id);
+    if (!entry) throw new Error(`unknown handle: ${h.id}`);
+    const timer = opts?.timeoutMs
+      ? setTimeout(() => {
+          void entry.container.stop({ t: 5 });
+        }, opts.timeoutMs)
+      : null;
+    try {
+      const { StatusCode } = await entry.container.wait();
+      const artifacts = runArtifacts({ projectRoot: this.opts.projectRoot, folder: entry.folder });
+      const reason = StatusCode === 0 ? 'ok' : 'error';
+      return {
+        exitCode: StatusCode,
+        reason,
+        resultJsonPath: artifacts.result,
+        journalPath: artifacts.journal,
+      };
+    } finally {
+      if (timer) clearTimeout(timer);
+      await entry.container.remove({ force: true }).catch(() => {});
+      this.running.delete(h.id);
+    }
   }
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async cancel(_h: Handle): Promise<void> {
-    throw new Error('DockerExecutor.cancel: not implemented (Phase 1)');
+
+  async *logs(h: Handle, opts?: { follow: boolean }): AsyncIterable<string> {
+    const entry = this.running.get(h.id);
+    if (!entry) throw new Error(`unknown handle: ${h.id}`);
+    const stream = await entry.container.logs({
+      stdout: true,
+      stderr: true,
+      follow: opts?.follow ?? false,
+    });
+    for await (const chunk of stream as AsyncIterable<Buffer>) {
+      yield chunk.toString('utf8');
+    }
+  }
+
+  async cancel(h: Handle): Promise<void> {
+    const entry = this.running.get(h.id);
+    if (!entry) return;
+    await entry.container.stop({ t: 5 }).catch(() => {});
   }
 }
