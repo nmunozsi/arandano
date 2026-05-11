@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { loadConfig } from '../config/load.js';
 import { loadPlan } from '../tasks/loadPlan.js';
@@ -7,6 +7,7 @@ import { selectReadyBatch, validateDag } from './dag.js';
 import { runOne } from './runOne.js';
 import type { Executor, ExitResult } from '../types/executor.js';
 import type { TaskFrontmatter } from '../types/task.js';
+import { synthesizeReviewerTask } from '../reviewer/synthesizeReviewerTask.js';
 
 export interface OrchestratorOpts {
   projectRoot: string;
@@ -57,6 +58,24 @@ export class Orchestrator {
 
       if (result.reason === 'ok') {
         completed.push(settledId);
+        const sourceFm = fms.find((t) => t.id === settledId);
+        if (sourceFm?.role === 'coder') {
+          const prUrl = (await store.read()).tasks[settledId]?.pr_url ?? '';
+          const reviewer = synthesizeReviewerTask({ source: sourceFm, prUrl });
+          if (reviewer) {
+            fms.push(reviewer);
+            // Write a task MD so runOne can find it via findTaskMd.
+            const planDir = join(projectRoot, '.arandano', 'tasks', planSlug);
+            const depsLine =
+              reviewer.depends_on && reviewer.depends_on.length > 0
+                ? `depends_on: [${reviewer.depends_on.join(', ')}]\n`
+                : '';
+            await writeFile(
+              join(planDir, `${reviewer.id}-auto.md`),
+              `---\nid: ${reviewer.id}\ntitle: "${reviewer.title.replace(/"/g, '\\"')}"\nrole: ${reviewer.role}\n${depsLine}---\nReview the PR opened by task ${settledId}.\n`,
+            );
+          }
+        }
       } else {
         failed.push(settledId);
       }

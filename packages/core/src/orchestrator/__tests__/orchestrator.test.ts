@@ -120,4 +120,29 @@ describe('Orchestrator', () => {
     await o.run();
     expect(peak).toBeLessThanOrEqual(2);
   });
+
+  it('spawns a reviewer task when reviewer_required=true on the coder task', async () => {
+    const planDir = join(dir, '.arandano', 'tasks', 'p');
+    await mkdir(planDir, { recursive: true });
+    await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+    await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');
+    await writeFile(join(dir, '.arandano', 'roles', 'reviewer.md'), '');
+    await writeFile(
+      join(planDir, 'T1-x.md'),
+      '---\nid: T1\ntitle: x\nrole: coder\nquality:\n  reviewer_required: true\n---\n',
+    );
+    await writeFile(
+      join(dir, '.arandano', 'config.yaml'),
+      CONFIG(2)
+        .replace('reviewer_required: false', 'reviewer_required: false')
+        .replace(
+          'roles:\n  coder:',
+          'roles:\n  reviewer:\n    cli: claude-code\n    model: m\n  coder:',
+        ),
+    );
+    const exec = okExecutor();
+    const o = new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec });
+    const r = await o.run();
+    expect(r.completed.sort()).toEqual(['T1', 'T1-review']);
+  });
 });
