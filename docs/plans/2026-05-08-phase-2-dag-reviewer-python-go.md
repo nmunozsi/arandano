@@ -86,7 +86,7 @@ Phase 1 has shipped. Before executing this plan, lock these surfaces in — do *
 - Create: `packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts`
 - Modify (optional): `packages/executors-docker/vitest.config.ts` (skip integration tests by default — opt in via `VITEST_DOCKER_INTEGRATION=1`)
 
-- [ ] **Step 1: Verify the worker image release workflow ran on main** ⏸ **needs user (gh CLI not installed on dev box)**
+- [x] **Step 1: Verify the worker image release workflow ran on main** ✅ release.yml pushed to origin; workflow succeeded (run 25703009169)
 
 ```bash
 gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1
@@ -94,7 +94,7 @@ gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1
 
 Expected: most recent run is `completed`/`success` on `main`. If not, push a no-op commit or trigger via `gh workflow run release.yml --repo nmunozsi/arandano-worker`.
 
-- [ ] **Step 2: Verify the image is pullable from ghcr** ⏸ **needs user (Docker daemon not running on dev box)**
+- [x] **Step 2: Verify the image is pullable from ghcr** ✅ `docker pull ghcr.io/nmunozsi/arandano-worker:0.0.0` succeeded. Note: Dockerfile fixed uid 1001 (node image owns 1000); also added `client.pull()` before `createContainer` (commit 38e03ca).
 
 ```bash
 docker pull ghcr.io/nmunozsi/arandano-worker:0.0.0
@@ -156,7 +156,7 @@ d('DockerExecutor against real Docker', () => {
 });
 ```
 
-- [ ] **Step 4: Run the integration test** ⏸ **needs user (Docker daemon not running)**
+- [x] **Step 4: Run the integration test** ✅ passed (1 test, 2568ms) — busybox container exits clean
 
 ```bash
 VITEST_DOCKER_INTEGRATION=1 npm test -w packages/executors-docker -- DockerExecutor.integration
