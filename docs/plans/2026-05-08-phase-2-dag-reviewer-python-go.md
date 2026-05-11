@@ -1563,24 +1563,13 @@ Same shape as Task 10 with Go tooling. Files:
 
 Smoke-test with a Go toy in `arandano-examples/go-toy/`.
 
-- [ ] **Step 1: Create Go template tree** (mirror previous tasks)
+- [x] **Step 1: Create Go template tree** (mirror previous tasks)
 
-- [ ] **Step 2: Implement Go gate wrappers**
+- [x] **Step 2: Implement Go gate wrappers**
 
-- [ ] **Step 3: Add Go toy and verify PR opens**
+- [ ] **Step 3: Add Go toy and verify PR opens** ⏸ **deferred — needs Docker**
 
-- [ ] **Step 4: Commit (in both repos)**
-
-```bash
-git add packages/templates/stacks/go/ packages/cli/
-git commit -m "feat(templates,cli): go stack scaffold"
-```
-
-```bash
-# in arandano-worker
-git add lib/
-git commit -m "feat(lib): go quality gate runners"
-```
+- [x] **Step 4: Commit** (arandano: 01db3e0, arandano-worker: d9a1d40 — go gates included)
 
 ---
 
@@ -1588,31 +1577,21 @@ git commit -m "feat(lib): go quality gate runners"
 
 **Goal:** Author a 3-task plan in the toy repo, run with `arandano run --plan=<slug>`, watch all three PRs open in parallel (capped at `max_parallel`).
 
-- [ ] **Step 1: In the node-ts-toy, raise `max_parallel: 3` in `config.yaml`**
+- [x] **Step 1: In the node-ts-toy, raise `max_parallel: 3` in `config.yaml`**
 
-- [ ] **Step 2: Write three small tasks**
+- [x] **Step 2: Write three small tasks** (`2026-05-11-three-helpers/T1-T3`)
 
-`.arandano/tasks/2026-05-08-three-helpers/T1-add-uppercase.md` — adds `src/uppercase.ts` + test.
-`T2-add-lowercase.md` — adds `src/lowercase.ts` + test.
-`T3-add-titlecase.md` — depends_on: [T1, T2], composes both.
-
-- [ ] **Step 3: Run**
+- [ ] **Step 3: Run** ⏸ **deferred — needs Docker**
 
 ```bash
-node ../../arandano/packages/cli/dist/bin.js run --plan=2026-05-08-three-helpers
+node ../../arandano/packages/cli/dist/bin.js run --plan=2026-05-11-three-helpers
 ```
 
 Expected: T1 and T2 run in parallel; T3 waits for both; all three PRs open with all gates green.
 
-- [ ] **Step 4: Verify with `arandano status`**
+- [ ] **Step 4: Verify with `arandano status`** ⏸ **deferred — needs Docker**
 
-```bash
-node ../../arandano/packages/cli/dist/bin.js status
-```
-
-Expected: all three rows show `completed` with PR URLs.
-
-- [ ] **Step 5: Document in examples README**
+- [x] **Step 5: Document in examples README**
 
 ```markdown
 ## Multi-task plan example

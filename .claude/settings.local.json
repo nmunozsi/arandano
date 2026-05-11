@@ -1,8 +1,19 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git *)",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\nmuno\\\\OneDrive\\\\Documentos\\\\Frutas\\\\arandano\\\\packages\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs wc -l)",
+      "PowerShell(New-Item *)"
+    ]
+  },
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true
-  },
-  "permissions": {
-    "allow": ["Bash(gh auth *)", "Bash(gh repo *)"]
   }
 }
