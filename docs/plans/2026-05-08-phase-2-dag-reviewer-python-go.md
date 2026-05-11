@@ -1,5 +1,7 @@
 # arandano Phase 2 — DAG Batching, Reviewer Task, Python + Go Stacks Implementation Plan
 
+> **Updated 2026-05-11 after Phase 1 landed.** See "Phase 1 reality check" below before executing — task surfaces and a new Task 0 (e2e prologue) have been added.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move from one-task-at-a-time to batched DAG execution. Implement parallel dispatch with `max_parallel`, the reviewer task that auto-spawns after each coder task, two new stacks (Python and Go) with full quality configs, and the management subcommands (`status`, `retry`, `cleanup`, `doctor`, `memory`, `issue`). After this phase, a real plan with multiple tasks runs end-to-end with reviewer feedback loops, and `arandano init --stack=python` / `--stack=go` are first-class.
@@ -15,6 +17,207 @@
 - Multi-provider CLI selection (OpenCode, Gemini, Codex) — Phase 3.
 - Coverage delta vs base + security as `required` — Phase 3.
 - Remote Docker over SSH — Phase 4.
+
+---
+
+## Phase 1 reality check (2026-05-11)
+
+Phase 1 has shipped. Before executing this plan, lock these surfaces in — do **not** redefine or rename them.
+
+**Locked-in Phase 1 surfaces:**
+
+- `Executor` interface — `packages/core/src/types/executor.ts:38-43`:
+  ```ts
+  export interface Executor {
+    start(task: TaskRun): Promise<Handle>;
+    wait(h: Handle, opts?: { timeoutMs: number }): Promise<ExitResult>;
+    logs(h: Handle, opts?: { follow: boolean }): AsyncIterable<string>;
+    cancel(h: Handle): Promise<void>;
+  }
+  ```
+- `StateStore.update` — `packages/core/src/state/store.ts:22` — **takes a callback, not a patch object**:
+  ```ts
+  async update(updater: (state: RunState) => void | Promise<void>): Promise<RunState>
+  ```
+- `RunState` — `packages/core/src/types/state.ts:13` — `{ tasks: Record<string, TaskState> }`. **Import from `'../types/state.js'`, not from `'../state/store.js'`** (Task 1 below has the wrong import path).
+- `runOne` — `packages/core/src/orchestrator/runOne.ts` — `runOne({ projectRoot, taskId, executor }): Promise<ExitResult>`.
+- Env vars set by `containerSpec.ts`: `ARANDANO_TASK_ID`, `ARANDANO_TASK_MD`, `ARANDANO_ROLE_MD`, `ARANDANO_CLI`, `ARANDANO_MODEL`, `ARANDANO_TDD`, `ARANDANO_RUN_FOLDER`, `ARANDANO_QUALITY_JSON`, `ARANDANO_CONTEXT_PATHS` + any in `task.envPass`.
+- Run folder format: `YYYY-MM-DDTHH-MMZ-<taskId>` (UTC).
+- 5 existing packages: `core`, `cli`, `executors-docker`, `templates`, `skills`.
+- Template `.tpl` convention: any file requiring `{{name}}`, `{{license}}`, `{{worker_image}}`, or `{{contact_email}}` interpolation **must** end in `.tpl`. The scaffold writer at `packages/templates/src/scaffold.ts` strips the suffix.
+- CLI exit-code idiom: `if (result.exitCode !== 0) process.exit(result.exitCode);` — **not** `this.exit(code)`. oclif 4's `exit()` takes no args.
+- Worker driver lives at `arandano-worker/lib/src/driver.ts`; gates at `arandano-worker/lib/src/gates/`; entrypoint exported as `main` from `arandano-worker/lib/src/index.ts`.
+
+**Phase 1 deferrals this plan must close before its own work begins** — see Task 0.
+
+**Per-task corrections to apply while executing the tasks below:**
+
+- **Task 1** (dag.ts): the import `import type { RunState } from '../state/store.js';` is wrong. Use `import type { RunState } from '../types/state.js';`. `RunState` is exported from the types module, not from `store.ts`. The `state/store.ts` file does **not** export `RunState`.
+- **Task 1** (dag.ts test): `selectReadyBatch`'s state argument uses `TaskState` shape. Phase 1's `TaskState` requires `retry_count: number` (see `packages/core/src/types/state.ts:7`); the test seeds `{ status: 'in_progress' }` without it. Either widen the type or add `retry_count: 0` to each seeded entry.
+- **Task 2** (loadPlan): the regex `^T\d+-.*\.md$` is fine but mirror Phase 1's `findTaskMd` glob (`${id}-*.md`) for naming consistency; both are compatible with the existing `node-ts-toy/.arandano/tasks/2026-05-08-add-greet/T1-add-greet.md`.
+- **Task 3** (orchestrator): in code blocks that call `state.tasks[taskId].status = '...'`, route writes through `store.update((state) => { ... })` rather than mutating after `store.read()`. The test executors `async () => ({...})` will trigger Phase 1's `require-await` lint rule; switch to `() => Promise.resolve({...})`.
+- **Task 3** (orchestrator.ts): the `isSettled` helper at the bottom races a resolved sentinel against the actual promise — this can busy-loop on Node 22. Replace with a `Set<Promise<{ id: string }>>` pattern: each in-flight task resolves to its own `id` and removes itself from the set on settle. Reference DockerExecutor's `Map<string, ...>` running-set pattern.
+- **Task 4** (synthesizeReviewerTask): the `quality` field on `TaskFrontmatter` is typed as `unknown`/parsed via Zod in Phase 1 (`packages/core/src/types/task.ts`). The `as never` casts are unnecessary; use the actual type or update `task.ts`'s Zod schema to include `reviewer_required`.
+- **Task 5** (reviewerDriver.ts): mirror the env-var-required helper from Phase 1's `arandano-worker/lib/src/driver.ts`:
+  ```ts
+  const env = (k: string) => {
+    const v = process.env[k];
+    if (!v) throw new Error(`missing env: ${k}`);
+    return v;
+  };
+  ```
+  rather than `process.env.X!` non-null assertions.
+- **Task 6** (`arandano run --plan`): Phase 1's `run.ts` always news up `DockerExecutor`. Refactor to share a `pickExecutor(cfg)` helper between `run` (single-task) and the new plan dispatcher; both will need it once Phase 5 (k8s) lands. Use `process.exit(code)` for non-zero exits.
+- **Task 7–9** (status/retry/cleanup/doctor/memory/issue commands): every new command must follow Phase 1's idiom — `process.exit(code)`, not `this.exit(code)`.
+- **Task 10 + 11** (Python + Go stacks): every file with `{{...}}` tokens must end in `.tpl`. Specifically: `AGENTS.md.tpl`, `README.md.tpl`, `.gitignore.tpl` (because it references `{{name}}`), `.arandano/config.yaml.tpl`, `planning/memory/coding-standards.md.tpl`, **and any nested-config file that local tooling auto-discovers** (Phase 1 hit this with `.lintstagedrc.json.tpl`). Mirror the node-ts approach: any file whose presence in the monorepo would interfere with root-level tooling gets `.tpl`'d.
+- **Task 10 + 11** (Python + Go stacks): the root ESLint config already ignores `packages/templates/stacks/**` — no changes needed there, but verify before assuming.
+- **Task 12** (e2e): node-ts e2e is Task 0 below. This task adds python-cli-toy and go-toy e2e runs on top.
+
+---
+
+## Task 0: Close Phase 1's deferred e2e gap (prerequisite)
+
+**Goal:** Prove the Phase 1 single-task happy path works end-to-end against real Docker before building DAG/batching on top. Phase 1 shipped code-complete but the actual e2e was deferred: `DockerExecutor` tests use a mocked Docker client; `ghcr.io/nmunozsi/arandano-worker:0.0.0` is not yet published; `arandano-examples/node-ts-toy/` has no agent-authored PR.
+
+**Why prologue:** Debugging batching parallelism on top of an unverified base path is wasteful — failure could be in the new DAG code, the Phase 1 dispatch, the worker image, the executor, or env-var plumbing. Close the variance first.
+
+**Files (most are verification, not creation):**
+
+- Create: `packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts`
+- Modify (optional): `packages/executors-docker/vitest.config.ts` (skip integration tests by default — opt in via `VITEST_DOCKER_INTEGRATION=1`)
+
+- [ ] **Step 1: Verify the worker image release workflow ran on main**
+
+```bash
+gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1
+```
+
+Expected: most recent run is `completed`/`success` on `main`. If not, push a no-op commit or trigger via `gh workflow run release.yml --repo nmunozsi/arandano-worker`.
+
+- [ ] **Step 2: Verify the image is pullable from ghcr**
+
+```bash
+docker pull ghcr.io/nmunozsi/arandano-worker:0.0.0
+```
+
+Expected: image pulls cleanly. If `denied: requested access to the resource is denied`, the package needs to be made public:
+
+```bash
+gh api -X PATCH /user/packages/container/arandano-worker --field visibility=public
+```
+
+- [ ] **Step 3: Add an opt-in integration test for `DockerExecutor`**
+
+`packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest';
+import { DockerExecutor } from '../DockerExecutor.js';
+import type { TaskRun } from '@arandano/core';
+
+const enabled = process.env.VITEST_DOCKER_INTEGRATION === '1';
+const d = enabled ? describe : describe.skip;
+
+d('DockerExecutor against real Docker', () => {
+  it('starts a busybox container and observes a clean exit', async () => {
+    const exec = new DockerExecutor({
+      image: 'busybox:latest',
+      projectRoot: process.cwd(),
+    });
+    // Minimal TaskRun — busybox just runs `true` via its default entrypoint override.
+    // Phase 2 may extend DockerExecutor with a cmd override; for now we rely on
+    // busybox's default `sh -c true` behavior via the spec.
+    const task: TaskRun = {
+      taskId: 'T_SMOKE',
+      taskMdPath: '.arandano/tasks/smoke/T_SMOKE.md',
+      rolePath: '.arandano/roles/coder.md',
+      contextPaths: [],
+      cli: 'echo',
+      model: 'noop',
+      tdd: 'relaxed',
+      quality: {
+        format: 'skip',
+        lint: 'skip',
+        typecheck: 'skip',
+        test: 'skip',
+        coverage: { min: 0, delta: 'any' },
+        security: 'skip',
+        commit_msg: 'skip',
+      } as never,
+      envPass: [],
+      workdir: '/workspace',
+      timeoutMs: 30_000,
+      mcpServers: [],
+    };
+    const h = await exec.start(task);
+    const r = await exec.wait(h, { timeoutMs: 30_000 });
+    expect(r.exitCode).toBeDefined();
+  }, 60_000);
+});
+```
+
+- [ ] **Step 4: Run the integration test**
+
+```bash
+VITEST_DOCKER_INTEGRATION=1 npm test -w packages/executors-docker -- DockerExecutor.integration
+```
+
+Expected: passes against the local Docker daemon. Without `VITEST_DOCKER_INTEGRATION=1` it's skipped, so CI won't be affected.
+
+- [ ] **Step 5: Run the worker image directly to confirm entrypoint and env-var contract**
+
+```bash
+docker run --rm \
+  -e ARANDANO_TASK_ID=T_SMOKE \
+  -e ARANDANO_TASK_MD=does-not-exist \
+  -e ARANDANO_ROLE_MD=does-not-exist \
+  -e ARANDANO_CLI=echo \
+  -e ARANDANO_MODEL=noop \
+  -e ARANDANO_TDD=relaxed \
+  -e ARANDANO_RUN_FOLDER=2026-05-11T00-00Z-T_SMOKE \
+  -e ARANDANO_QUALITY_JSON='{"format":"skip","lint":"skip","typecheck":"skip","test":"skip","coverage":{"min":0,"delta":"any"},"security":"skip","commit_msg":"skip"}' \
+  ghcr.io/nmunozsi/arandano-worker:0.0.0 || true
+```
+
+Expected: container starts, driver loads, errors out reading the missing task MD. That's fine — the point is the entrypoint runs `node /opt/worker/lib/dist/driver.js`.
+
+- [ ] **Step 6: Run a real arandano run T1 against node-ts-toy**
+
+In a separate shell session with credentials available:
+
+```bash
+cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy
+$env:GH_TOKEN = (gh auth token)
+$env:ANTHROPIC_API_KEY = "<your key>"
+node C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js run T1
+```
+
+Expected:
+
+- worker container starts;
+- writes `src/greet.test.ts`, makes it pass;
+- runs all gates (format → lint → typecheck → test → coverage → security → commitMsg);
+- pushes `agent/T1-add-a-greet-helper-with-a-test`;
+- opens a PR via `gh pr create`;
+- writes `.arandano/runs/<folder>/result.json` with `passed: true`.
+
+- [ ] **Step 7: Verify the artifacts and PR**
+
+```bash
+gh pr list --repo <your-fork-of-node-ts-toy>
+cat node-ts-toy/.arandano/runs/*/result.json
+```
+
+Expected: one open PR; `result.json` shows `passed: true`, every gate `passed: true`, `tdd.ok: true`.
+
+- [ ] **Step 8: Commit the integration test**
+
+```bash
+git add packages/executors-docker/src/__tests__/DockerExecutor.integration.test.ts
+git commit -m "test(executors-docker): opt-in integration test against real Docker"
+```
+
+**Exit criterion for Task 0:** Phase 1's deferred e2e is closed — there's a real PR opened by the worker, the image is published, and the executor has at least one un-mocked test path. Phase 2 batching work can proceed.
 
 ---
 
@@ -1436,11 +1639,12 @@ Expected: all three rows show `completed` with PR URLs.
 
 ## Phase 2 done — exit criteria
 
+- [ ] **Task 0 closed: Phase 1 e2e proven** — node-ts-toy has at least one agent-authored PR; `DockerExecutor.integration.test.ts` passes locally with `VITEST_DOCKER_INTEGRATION=1`; `ghcr.io/nmunozsi/arandano-worker:0.0.0` pulls cleanly
 - [ ] `arandano run --plan=<slug>` runs an entire DAG with `max_parallel` parallelism
 - [ ] Reviewer tasks auto-spawn after coder tasks when `reviewer_required: true`; secrets in diffs trigger `request_changes`
-- [ ] `arandano init --stack=python` and `--stack=go` produce buildable scaffolds
+- [ ] `arandano init --stack=python` and `--stack=go` produce buildable scaffolds (with `.tpl` suffix on every token-bearing file)
 - [ ] Worker runs the right gate set for the project's stack (Node-TS, Python, or Go)
-- [ ] `arandano status`, `retry`, `cleanup`, `doctor`, `memory promote`, and `issue {open,close,list}` work end-to-end
+- [ ] `arandano status`, `retry`, `cleanup`, `doctor`, `memory promote`, and `issue {open,close,list}` work end-to-end (all using `process.exit(code)` idiom)
 - [ ] Three example projects (node-ts-toy, python-cli-toy, go-toy) each have at least one fully agent-authored PR
 
 After this, the next plan covers **Phase 3 — multi-provider CLI selection (OpenCode, Gemini, Codex), coverage delta vs. base branch, and security as a required gate**.

@@ -1,5 +1,7 @@
 # arandano Phase 3 — Multi-Provider CLI, Coverage Delta, Security Gates Implementation Plan
 
+> **Updated 2026-05-11 after Phase 1 landed.** See "Phase 1 reality check" below before executing — Task 1's refactor target and `pickInvoker` wiring point have been pinned.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the per-role CLI/model config real. The worker must dispatch to Claude Code, OpenCode, Gemini CLI, or Codex based on `cli:` in the role/task. Add coverage-delta enforcement (refuse PRs that drop coverage relative to the base branch when `coverage.delta: nonneg`). Promote security from `warn` to `required` by default. Verify every gate path on at least three providers.
@@ -14,6 +16,65 @@
 
 - Per-task budget enforcement (max tokens, max USD) — out of scope for v1 entirely.
 - Remote Docker over SSH — Phase 4.
+
+---
+
+## Phase 1 reality check (2026-05-11)
+
+This phase refactors Phase 1's worker `invokeCli`. Lock these in before executing:
+
+**Phase 1 surfaces this plan touches:**
+
+- `invokeCli` — `arandano-worker/lib/src/invokeClaudeCode.ts`:
+  ```ts
+  export async function invokeCli(opts: {
+    cli: string;
+    args: string[];
+    prompt: string;
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+  }): Promise<{ exitCode: number; output: string }>;
+  ```
+  The implementation `spawn(opts.cli, opts.args, { cwd, env })` and `proc.stdin.end(opts.prompt)` is Windows-compatible because the test passes `cli: process.execPath, args: [script]` rather than relying on shebang execution. **Task 1's `CliInvoker` extraction must preserve the `cli + args` separation** — invokers that want to spawn `node <script>` (in tests) must be able to do so.
+- Worker driver — `arandano-worker/lib/src/driver.ts:70-76`:
+  ```ts
+  const cliRun = await invokeCli({
+    cli,
+    args: ['--print'],
+    prompt,
+    cwd: workspace,
+    env: process.env,
+  });
+  ```
+  This is the line Task 3's `pickInvoker` replaces. After the refactor it becomes:
+  ```ts
+  const invoker = pickInvoker(cli);
+  const cliRun = await invoker.invoke({
+    prompt,
+    cwd: workspace,
+    env: process.env,
+    model,
+    timeoutMs,
+  });
+  ```
+- Role config — `packages/core/src/types/role.ts` — the field name is `cli`, **not** `provider`. Task 7's validation extends the Zod schema in this file; check the actual file before writing code blocks that reference `roleConfig.provider`.
+- Env-var helper idiom — `arandano-worker/lib/src/driver.ts`:
+  ```ts
+  const env = (k: string) => {
+    const v = process.env[k];
+    if (!v) throw new Error(`missing env: ${k}`);
+    return v;
+  };
+  ```
+  New invoker code that reads env should follow this pattern, not `process.env.X!`.
+
+**Per-task corrections:**
+
+- **Task 1** (`ClaudeCodeInvoker`): the test's shim binary uses `chmod 0o755 + shebang`, which won't work on Windows (Phase 1 hit this exact issue with `invokeClaudeCode.test.ts`). Use the Phase 1 pattern: `cli: process.execPath, args: [shimScriptPath]` so the test runs on every OS. The container only ever runs on Linux, so the actual `claude` binary invocation is unaffected.
+- **Task 1** (driver wiring): the plan's Step 4 says "modify driver.ts to use the new invoker"; the exact replacement target is `driver.ts:70-76` (quoted above). Quote the full `await invokeCli(...)` call when describing the replacement.
+- **Task 3** (`pickInvoker`): import path is `../cli/pickInvoker.js`, called from `driver.ts`. Keep the existing `cli` variable name (sourced from `env('ARANDANO_CLI')`); don't rename.
+- **Task 7** (per-role config validation): cross-check `packages/core/src/types/role.ts` before drafting Zod schemas — the field is `cli: z.string()` (already there); the validation Phase 3 adds is `.refine((v) => SUPPORTED.includes(v))`. Don't introduce a new `provider` field.
+- **General**: `coverageDelta.ts` and the parsers consume `runShell` from `arandano-worker/lib/src/gates/_shell.ts` (Phase 1) — same `ShellResult` shape `{ passed, exitCode, output, durationMs }`.
 
 ---
 

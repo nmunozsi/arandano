@@ -1,5 +1,7 @@
 # arandano Phase 4 — Remote Homelab Docker + CI Workflow Templates Implementation Plan
 
+> **Updated 2026-05-11 after Phase 1 landed.** See "Phase 1 reality check" below before executing — Task 4 is rescoped (node-ts CI already exists) and `client.ts` is modified (not created).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the orchestrator dispatch tasks to a remote Docker daemon over SSH, so a developer's laptop can drive workers running on the homelab Ubuntu/Docker-Compose box. Ship CI workflow templates per forge (GitHub Actions, Forgejo Actions, GitLab CI) selectable at `arandano init` time. Add a setup guide that walks a brand-new user from "fresh laptop + fresh homelab" to a green PR.
@@ -14,6 +16,32 @@
 
 - K8s executor — Phase 5.
 - Daemon mode — Phase 6.
+
+---
+
+## Phase 1 reality check (2026-05-11)
+
+Phase 1 shipped `executors-docker/src/client.ts` with `defaultClient()` and the node-ts CI workflow at `packages/templates/stacks/node-ts/.github/workflows/ci.yml`. This rescopes some tasks.
+
+**Phase 1 surfaces this plan touches:**
+
+- `defaultClient()` — `packages/executors-docker/src/client.ts`:
+  ```ts
+  export interface DockerClient { createContainer(opts: unknown): Promise<...> }
+  export function defaultClient(): DockerClient { const d = new Docker(); return d as unknown as DockerClient; }
+  ```
+  Task 2 **modifies** this file to honor `parseDockerHost`; it doesn't create a new client module.
+- Init command — `packages/cli/src/commands/init.ts` — uses `Flags.string({ required: true })` style (oclif 4). The flag list as of Phase 1: `--stack`, `--name`, `--target`, `--worker-image`, `--license`, `--contact-email`. Task 7 adds `--forge` here.
+- Existing node-ts CI — `packages/templates/stacks/node-ts/.github/workflows/ci.yml` already exists. Task 4 audits/refines this, doesn't create.
+- CLI exit-code idiom: `process.exit(code)` (not `this.exit(code)`).
+
+**Per-task corrections:**
+
+- **Task 2** (wire `parseDockerHost` into client factory): the existing `defaultClient()` calls `new Docker()` (no args). Modify to `new Docker(parseDockerHost(host))`. The `host` arg must thread through: `DockerExecutorOpts` → `defaultClient(host?)` → `parseDockerHost(host)`. Check `DockerExecutor.ts` constructor — currently it calls `defaultClient()` with no args; that line needs the host argument added.
+- **Task 4** (GitHub Actions templates): rescope. The node-ts GHA template **already exists** at `packages/templates/stacks/node-ts/.github/workflows/ci.yml` (shipped in Phase 1 Task 1). Audit it for: (a) caching `node_modules`, (b) running all 7 gates in order, (c) matrix on Node 22. **Only python and go GHA templates are net-new in this phase** (and those depend on Phase 2 Tasks 10/11 having shipped python/go scaffolds first).
+- **Task 7** (`--forge` flag): use `Flags.string({ options: ['github', 'forgejo', 'gitlab'], default: 'github' })`. The init command currently writes the whole stack tree unconditionally; you'll need to either (a) move forge-specific files under `stacks/<stack>/.forge/<github|forgejo|gitlab>/` and copy only the selected one, or (b) post-scaffold-prune the unselected forge directories. Approach (a) is cleaner and matches the `.tpl` convention's spirit.
+- **All new commands/extensions**: use `process.exit(code)` for non-zero exits, not `this.exit(code)` (oclif 4 changed the signature).
+- **Sequencing**: Phase 4 Task 4 (python/go GHA templates) depends on Phase 2 Tasks 10/11 (python/go scaffolds). Don't attempt this phase until Phase 2 is at least through Task 11.
 
 ---
 
