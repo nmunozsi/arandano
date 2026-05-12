@@ -39,7 +39,7 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
   return {
     Image: image,
     WorkingDir: task.workdir,
-    User: '1000:1000',
+    User: '1001:1001',
     Env: env,
     HostConfig: {
       Binds: [`${projectRoot}:${task.workdir}`],
