@@ -164,7 +164,7 @@ VITEST_DOCKER_INTEGRATION=1 npm test -w packages/executors-docker -- DockerExecu
 
 Expected: passes against the local Docker daemon. Without `VITEST_DOCKER_INTEGRATION=1` it's skipped, so CI won't be affected.
 
-- [ ] **Step 5: Run the worker image directly to confirm entrypoint and env-var contract** ⏸ **needs user (Docker)**
+- [x] **Step 5: Run the worker image directly to confirm entrypoint and env-var contract** ✅ `start.ts` entry runs `main()` which throws `missing env: ARANDANO_TASK_MD` — entrypoint and env-var validation confirmed
 
 ```bash
 docker run --rm \
@@ -181,34 +181,24 @@ docker run --rm \
 
 Expected: container starts, driver loads, errors out reading the missing task MD. That's fine — the point is the entrypoint runs `node /opt/worker/lib/dist/driver.js`.
 
-- [ ] **Step 6: Run a real arandano run T1 against node-ts-toy** ⏸ **needs user (Docker + Anthropic API key + gh)**
+- [x] **Step 6: Run a real arandano run T1 against node-ts-toy** ✅ `pr: https://github.com/nmunozsi/node-ts-toy/pull/1 passed=true exit=0`
 
-In a separate shell session with credentials available:
+  **Fixes required before this worked (2026-05-12/13):**
 
-```bash
-cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy
-$env:GH_TOKEN = (gh auth token)
-$env:ANTHROPIC_API_KEY = "<your key>"
-node C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js run T1
-```
+  - `node-ts-toy` had no `package.json` — added with vitest/prettier/eslint/typescript devDeps.
+  - `eslint.config.js` used `projectService: true` which rejected root-level config files not in `tsconfig.json`; fixed with `allowDefaultProject: ['*.js','*.cjs','*.mjs','*.ts']`.
+  - Worker image missing `npm install` step before gates; added stack-aware install in `driver.ts` before CLI invoke.
+  - `createBranch` crashed on stale agent branch left by prior failed run; fixed: checkout `defaultBranch` from config on startup, then force-recreate branch.
+  - `claude --print` silently skipped file writes without `--dangerously-skip-permissions`; added flag.
+  - `git push` in container used SSH remote (no SSH in image); fixed with `git config url."https://github.com/".insteadOf "git@github.com:"` in entrypoint + `gh auth setup-git`.
+  - `GH_TOKEN` needed `write:packages` scope for GHCR push — switched from manual `docker push` to GitHub Actions `release.yml` (triggered by pushing to arandano-worker `main`).
 
-Expected:
-
-- worker container starts;
-- writes `src/greet.test.ts`, makes it pass;
-- runs all gates (format → lint → typecheck → test → coverage → security → commitMsg);
-- pushes `agent/T1-add-a-greet-helper-with-a-test`;
-- opens a PR via `gh pr create`;
-- writes `.arandano/runs/<folder>/result.json` with `passed: true`.
-
-- [ ] **Step 7: Verify the artifacts and PR** ⏸ **needs user (gh)**
+- [x] **Step 7: Verify the artifacts and PR** ✅ PR #1 opened; `result.json` shows `passed: true`, every gate `passed: true`, `tdd.ok: true`
 
 ```bash
-gh pr list --repo <your-fork-of-node-ts-toy>
-cat node-ts-toy/.arandano/runs/*/result.json
+gh pr list --repo nmunozsi/node-ts-toy
+cat .arandano/runs/2026-05-13T01-18Z-T1/result.json
 ```
-
-Expected: one open PR; `result.json` shows `passed: true`, every gate `passed: true`, `tdd.ok: true`.
 
 - [x] **Step 8: Commit the integration test** ✅ committed 433a066
 
