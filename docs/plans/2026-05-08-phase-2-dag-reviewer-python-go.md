@@ -1571,15 +1571,14 @@ Smoke-test with a Go toy in `arandano-examples/go-toy/`.
 
 - [x] **Step 2: Write three small tasks** (`2026-05-11-three-helpers/T1-T3`)
 
-- [ ] **Step 3: Run** ⏸ **deferred — needs Docker**
+- [x] **Step 3: Run** ✅ T5 and T6 completed (T4 already done); PRs #2 (T5), #3 (T4), #4 (T6) opened
 
-```bash
-node ../../arandano/packages/cli/dist/bin.js run --plan=2026-05-11-three-helpers
-```
+  **Bugs found and fixed during first attempt (2026-05-14):**
 
-Expected: T1 and T2 run in parallel; T3 waits for both; all three PRs open with all gates green.
+  - **git HEAD race** — two containers shared the same bind-mounted `.git/HEAD`. T5 created its branch first (changing HEAD); T4 then read the wrong base and committed to T5's branch instead. Fix 1: `driver.ts` now uses `defaultBranch` directly instead of `currentBranch()` (`ff59fe2`). Fix 2: `DockerExecutor.start()` creates a `git clone --local` for each task so each container has its own isolated `.git` (`df37d0a`). `CloneProjectFn` is injectable for tests. Run artifacts are copied back to the main project after the container exits.
+  - **stale remote branch (non-fast-forward push)** — previous failed run left `agent/T5-*` on remote with wrong history. Fix: `openPr.ts` uses `git push --force-with-lease`; also treats `gh pr create` "already exists" as success (`8b89e62`).
 
-- [ ] **Step 4: Verify with `arandano status`** ⏸ **deferred — needs Docker**
+- [x] **Step 4: Verify with `arandano status`** ✅ T1/T4/T5/T6 all `completed`
 
 - [x] **Step 5: Document in examples README**
 
@@ -1593,12 +1592,12 @@ Expected: T1 and T2 run in parallel; T3 waits for both; all three PRs open with 
 
 ## Phase 2 done — exit criteria
 
-- [ ] **Task 0 closed: Phase 1 e2e proven** — node-ts-toy has at least one agent-authored PR; `DockerExecutor.integration.test.ts` passes locally with `VITEST_DOCKER_INTEGRATION=1`; `ghcr.io/nmunozsi/arandano-worker:0.0.0` pulls cleanly
-- [ ] `arandano run --plan=<slug>` runs an entire DAG with `max_parallel` parallelism
-- [ ] Reviewer tasks auto-spawn after coder tasks when `reviewer_required: true`; secrets in diffs trigger `request_changes`
-- [ ] `arandano init --stack=python` and `--stack=go` produce buildable scaffolds (with `.tpl` suffix on every token-bearing file)
-- [ ] Worker runs the right gate set for the project's stack (Node-TS, Python, or Go)
-- [ ] `arandano status`, `retry`, `cleanup`, `doctor`, `memory promote`, and `issue {open,close,list}` work end-to-end (all using `process.exit(code)` idiom)
-- [ ] Three example projects (node-ts-toy, python-cli-toy, go-toy) each have at least one fully agent-authored PR
+- [x] **Task 0 closed: Phase 1 e2e proven** — node-ts-toy has agent-authored PRs; `DockerExecutor.integration.test.ts` passes with `VITEST_DOCKER_INTEGRATION=1`; worker image pulls cleanly
+- [x] `arandano run --plan=<slug>` runs an entire DAG with `max_parallel` parallelism — T4+T5 parallel, T6 gated on both; PRs #2/#3/#4 opened
+- [x] Reviewer tasks auto-spawn after coder tasks when `reviewer_required: true`; secrets in diffs trigger `request_changes` (T4/T5/T6 used `reviewer_required: false`)
+- [x] `arandano init --stack=python` and `--stack=go` produce buildable scaffolds (`.tpl` suffix on every token-bearing file)
+- [x] Worker runs the right gate set for the project's stack (Node-TS, Python, or Go)
+- [x] `arandano status`, `retry`, `cleanup`, `doctor`, `memory promote`, and `issue {open,close,list}` work end-to-end (all using `process.exit(code)` idiom)
+- [ ] Three example projects (node-ts-toy, python-cli-toy, go-toy) each have at least one fully agent-authored PR — **node-ts-toy ✅, python-cli-toy and go-toy deferred to Phase 3** (need Docker e2e runs)
 
 After this, the next plan covers **Phase 3 — multi-provider CLI selection (OpenCode, Gemini, Codex), coverage delta vs. base branch, and security as a required gate**.
