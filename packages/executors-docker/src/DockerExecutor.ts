@@ -43,6 +43,15 @@ export class DockerExecutor implements Executor {
     await container.start();
     const id = `${task.taskId}::${container.id}`;
     this.running.set(id, { containerId: container.id, container, folder });
+    // Stream container logs live to host stdout (Docker multiplex: 8-byte header + payload)
+    void container
+      .logs({ stdout: true, stderr: true, follow: true })
+      .then((stream) => {
+        stream.on('data', (chunk: Buffer) => {
+          if (chunk.length > 8) process.stdout.write(chunk.subarray(8));
+        });
+      })
+      .catch(() => {});
     return { id };
   }
 
