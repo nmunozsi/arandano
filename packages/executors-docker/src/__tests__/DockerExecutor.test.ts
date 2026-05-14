@@ -53,6 +53,7 @@ describe('DockerExecutor', () => {
       client: client as never,
       hostEnv: {},
       now: () => new Date('2026-05-08T19:30:00Z'),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     expect(h.id).toContain('T1');
@@ -71,6 +72,7 @@ describe('DockerExecutor', () => {
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     const res = await exec.wait(h);
@@ -92,6 +94,7 @@ describe('DockerExecutor', () => {
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     const res = await exec.wait(h);
@@ -111,6 +114,7 @@ describe('DockerExecutor', () => {
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     await exec.cancel(h);
