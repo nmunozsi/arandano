@@ -2,7 +2,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', 'packages/templates/stacks/**'],
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      'packages/templates/stacks/**',
+      'packages/templates/commitlint-rules/**',
+    ],
   },
   ...tseslint.configs.recommendedTypeChecked,
   {

@@ -1,8 +1,9 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 export default defineConfig({
   test: {
     globals: false,
+    exclude: [...configDefaults.exclude, '**/commitlint-rules/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

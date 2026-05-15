@@ -9,11 +9,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./commitlint-rules": "./commitlint-rules/index.cjs"
   },
   "files": [
     "dist",
     "stacks",
+    "commitlint-rules",
     "README.md"
   ],
   "scripts": {
