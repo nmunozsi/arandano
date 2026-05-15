@@ -76,6 +76,62 @@ The Dockerfile creates `worker` at UID **1001** (node image already owns 1000). 
 
 ---
 
+## Docs and tool folder structure
+
+All design + planning + agentic work follows this hierarchy:
+
+**Spec → Plans → Phases → Tasks**
+
+| Level | File             | Owns                                 |
+| ----- | ---------------- | ------------------------------------ |
+| Spec  | `spec.md`        | Design / vision / non-goals / risks  |
+| Plan  | `plan.md`        | Plan overview + phase checklist      |
+| Phase | `phase.md`       | Phase overview + task checklist      |
+| Task  | `T<N>-<slug>.md` | Task body with step-level checkboxes |
+
+### Locations
+
+- **Monorepo (this repo):** `docs/<spec-name>/spec.md`, `docs/<spec-name>/plans/<plan-slug>/...`
+- **User projects** (`.arandano/` from `arandano init`): `.arandano/specs/<spec-name>/spec.md`, `.arandano/specs/<spec-name>/plans/<plan-slug>/...`
+
+### Single-phase plan collapse
+
+When a plan has exactly one phase, the directory for that phase is skipped — tasks live directly under the plan folder, and `plan.md` owns the task checklist instead of a separate `phase.md`.
+
+### Location header (required on every MD)
+
+Every `spec.md`, `plan.md`, `phase.md`, and `T*.md` starts with a callout that shows the file's path and its parent folder, with `← you are here` next to the current file:
+
+> **Location:** `<full path from repo root>`
+>
+> **Folder structure:**
+>
+> ```
+> <parent folder>/
+> ├── <sibling file>
+> ├── <current file>   ← you are here
+> └── <sibling folder>/
+> ```
+
+Generate it with the `packages/cli/src/migration/locationHeader.ts` helper, or follow the template above by hand.
+
+### Progress tracking
+
+- `plan.md` owns the phase-level checklist (or task checklist for single-phase plans).
+- `phase.md` owns the task-level checklist.
+- Each `T<N>-*.md` owns its own step-level `- [ ]` checkboxes.
+
+When executing a task, an agent has read+write access to all files in the spec/plan/phase folder and is expected to update progress checkboxes as it goes. Cross-task updates (editing a later task to incorporate findings from the current one) are first-class.
+
+### CLI
+
+- `arandano run --plan=<slug>` resolves an unambiguous slug across all specs.
+- `arandano run --spec=<name> --plan=<slug>` disambiguates.
+- `arandano run --plan=<slug> --phase=<phase-slug>` runs a single phase of a multi-phase plan.
+- `arandano migrate docs --commit` migrates legacy `docs/plans/` and `.arandano/tasks/` trees to this hierarchy.
+
+---
+
 ## Lessons learned from e2e debugging (Task 0, 2026-05-12/13)
 
 These are real failures that cost hours. Don't repeat them.
