@@ -302,6 +302,44 @@
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": ["dist", "commands", "memory", "promote.js"]
+    },
+    "migrate:docs": {
+      "aliases": [],
+      "args": {},
+      "description": "Migrate docs/plans/ and .arandano/tasks/ to the new spec→plans→phases→tasks hierarchy.",
+      "flags": {
+        "project": {
+          "description": "project root (defaults to current dir)",
+          "name": "project",
+          "default": "C:\\Users\\nmuno\\OneDrive\\Documentos\\Frutas\\arandano\\packages\\cli",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "commit": {
+          "description": "actually perform the migration (without this, runs as a dry-run)",
+          "name": "commit",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "spec": {
+          "description": "spec name to use when migrating a user project (.arandano/tasks/)",
+          "name": "spec",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "migrate:docs",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "migrate", "docs.js"]
     }
   },
   "version": "0.0.0"
