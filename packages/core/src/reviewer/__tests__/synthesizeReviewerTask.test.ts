@@ -24,7 +24,7 @@ describe('synthesizeReviewerTask', () => {
   });
 
   it('returns null when quality is not set', () => {
-    const cf: TaskFrontmatter = { ...coder, quality: undefined };
+    const cf: TaskFrontmatter = { id: coder.id, title: coder.title, role: coder.role };
     expect(synthesizeReviewerTask({ source: cf, prUrl: 'x' })).toBeNull();
   });
 });
