@@ -10,7 +10,7 @@ export interface ParsedPhasePlan {
   exitCriteria: string | null;
 }
 
-const TASK_HEADING = /^## Task (\d+):\s*(.+?)$/m;
+const TASK_HEADING = /^#{2,3} Task (\d+):\s*(.+?)$/m;
 
 export function parsePhasePlan(text: string): ParsedPhasePlan {
   const lines = text.split('\n');
@@ -27,7 +27,7 @@ export function parsePhasePlan(text: string): ParsedPhasePlan {
         number: Number(m[1]),
         title: m[2]!.trim(),
       });
-    } else if (/^## Phase done/i.test(line) || /^## Exit criteria/i.test(line)) {
+    } else if (/^## Phase (?:\d+ )?done/i.test(line) || /^## Exit criteria/i.test(line)) {
       headings.push({ kind: 'exit', line: i });
     }
   }
