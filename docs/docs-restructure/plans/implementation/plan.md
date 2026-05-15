@@ -10,7 +10,7 @@
 > └── (per-task files split off later by the migration script if/when needed)
 > ```
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the migration tooling, adapt the CLI and worker plumbing, and execute a one-time migration of the entire repo plus the live `node-ts-toy` example to the spec→plans→phases→tasks hierarchy described in [`spec.md`](../../spec.md).
 
@@ -81,7 +81,7 @@ arandano-examples/node-ts-toy/.arandano/
 - Create: `packages/cli/src/migration/parsePhasePlan.ts`
 - Create: `packages/cli/src/migration/__tests__/parsePhasePlan.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `packages/cli/src/migration/__tests__/parsePhasePlan.test.ts`:
 
@@ -111,7 +111,7 @@ const SAMPLE = `# arandano Phase 2 — Example Plan
 const x = 1;
 \`\`\`
 
-- [ ] **Step 2: Do other thing**
+- [x] **Step 2: Do other thing**
 
 ---
 
@@ -121,13 +121,13 @@ const x = 1;
 
 - Create: \`b.ts\`
 
-- [ ] **Step 1: Write test**
+- [x] **Step 1: Write test**
 
 ---
 
 ## Phase done — exit criteria
 
-- [ ] Everything works
+- [x] Everything works
 `;
 
 describe('parsePhasePlan', () => {
@@ -156,19 +156,19 @@ describe('parsePhasePlan', () => {
   it('preserves [x] state inside task bodies', () => {
     const r = parsePhasePlan(SAMPLE);
     expect(r.tasks[0]?.body).toContain('- [x] **Step 1');
-    expect(r.tasks[0]?.body).toContain('- [ ] **Step 2');
+    expect(r.tasks[0]?.body).toContain('- [x] **Step 2');
   });
 
   it('handles a plan with a Task 0', () => {
     const r = parsePhasePlan(
-      '# x\n\nGoal\n\n---\n\n## Task 0: Setup\n\n- [ ] step\n\n---\n\n## Task 1: Real\n\n- [ ] step\n',
+      '# x\n\nGoal\n\n---\n\n## Task 0: Setup\n\n- [x] step\n\n---\n\n## Task 1: Real\n\n- [x] step\n',
     );
     expect(r.tasks.map((t) => t.number)).toEqual([0, 1]);
   });
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -w packages/cli -- parsePhasePlan
@@ -176,7 +176,7 @@ npm test -w packages/cli -- parsePhasePlan
 
 Expected: `Cannot find module '../parsePhasePlan.js'`.
 
-- [ ] **Step 3: Implement `packages/cli/src/migration/parsePhasePlan.ts`**
+- [x] **Step 3: Implement `packages/cli/src/migration/parsePhasePlan.ts`**
 
 ```ts
 export interface ParsedTask {
@@ -237,7 +237,7 @@ export function parsePhasePlan(text: string): ParsedPhasePlan {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npm test -w packages/cli -- parsePhasePlan
@@ -245,7 +245,7 @@ npm test -w packages/cli -- parsePhasePlan
 
 Expected: 5 passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/cli/src/migration/parsePhasePlan.ts packages/cli/src/migration/__tests__/parsePhasePlan.test.ts
@@ -263,7 +263,7 @@ git commit -m "feat(cli): migration parser for legacy phase plans"
 - Create: `packages/cli/src/migration/locationHeader.ts`
 - Create: `packages/cli/src/migration/__tests__/locationHeader.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `packages/cli/src/migration/__tests__/locationHeader.test.ts`:
 
@@ -318,7 +318,7 @@ describe('locationHeader', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -w packages/cli -- locationHeader
@@ -326,7 +326,7 @@ npm test -w packages/cli -- locationHeader
 
 Expected: module not found.
 
-- [ ] **Step 3: Implement `packages/cli/src/migration/locationHeader.ts`**
+- [x] **Step 3: Implement `packages/cli/src/migration/locationHeader.ts`**
 
 ````ts
 import { dirname, basename } from 'node:path';
@@ -367,7 +367,7 @@ export function locationHeader(opts: LocationOpts): string {
 }
 ````
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npm test -w packages/cli -- locationHeader
@@ -375,7 +375,7 @@ npm test -w packages/cli -- locationHeader
 
 Expected: 4 passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/cli/src/migration/locationHeader.ts packages/cli/src/migration/__tests__/locationHeader.test.ts
@@ -393,7 +393,7 @@ git commit -m "feat(cli): Location header generator for the new docs structure"
 - Create: `packages/cli/src/migration/writeNewStructure.ts`
 - Create: `packages/cli/src/migration/__tests__/writeNewStructure.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `packages/cli/src/migration/__tests__/writeNewStructure.test.ts`:
 
@@ -414,10 +414,10 @@ beforeEach(async () => {
 const parsed: ParsedPhasePlan = {
   preamble: '# arandano Phase 2 — Example\n\n**Goal:** A test.',
   tasks: [
-    { number: 1, title: 'First (TDD)', body: '## Task 1: First (TDD)\n\n- [ ] step a' },
-    { number: 2, title: 'Second', body: '## Task 2: Second\n\n- [ ] step b' },
+    { number: 1, title: 'First (TDD)', body: '## Task 1: First (TDD)\n\n- [x] step a' },
+    { number: 2, title: 'Second', body: '## Task 2: Second\n\n- [x] step b' },
   ],
-  exitCriteria: '- [ ] All works',
+  exitCriteria: '- [x] All works',
 };
 
 describe('writeNewStructure', () => {
@@ -434,8 +434,8 @@ describe('writeNewStructure', () => {
     expect(entries.sort()).toEqual(['T1-first.md', 'T2-second.md', 'phase.md']);
     const phase = await readFile(join(fullDest, 'phase.md'), 'utf8');
     expect(phase).toContain('> **Location:** `' + destFolder + '/phase.md`');
-    expect(phase).toContain('- [ ] [T1 — First (TDD)](T1-first.md)');
-    expect(phase).toContain('- [ ] [T2 — Second](T2-second.md)');
+    expect(phase).toContain('- [x] [T1 — First (TDD)](T1-first.md)');
+    expect(phase).toContain('- [x] [T2 — Second](T2-second.md)');
     expect(phase).toContain('**Goal:** A test.');
   });
 
@@ -483,7 +483,7 @@ describe('writeNewStructure', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -w packages/cli -- writeNewStructure
@@ -491,7 +491,7 @@ npm test -w packages/cli -- writeNewStructure
 
 Expected: module not found.
 
-- [ ] **Step 3: Implement `packages/cli/src/migration/writeNewStructure.ts`**
+- [x] **Step 3: Implement `packages/cli/src/migration/writeNewStructure.ts`**
 
 ```ts
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -544,7 +544,7 @@ export async function writeNewStructure(opts: WriteOpts): Promise<void> {
     siblings: siblingsFor(overviewName),
   });
   const checklist = taskFiles
-    .map((tf) => `- [ ] [T${tf.task.number} — ${tf.task.title}](${tf.name})`)
+    .map((tf) => `- [x] [T${tf.task.number} — ${tf.task.title}](${tf.name})`)
     .join('\n');
   const overviewBody = [
     opts.parsed.preamble,
@@ -570,7 +570,7 @@ export async function writeNewStructure(opts: WriteOpts): Promise<void> {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npm test -w packages/cli -- writeNewStructure
@@ -578,7 +578,7 @@ npm test -w packages/cli -- writeNewStructure
 
 Expected: 4 passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/cli/src/migration/writeNewStructure.ts packages/cli/src/migration/__tests__/writeNewStructure.test.ts
@@ -596,7 +596,7 @@ git commit -m "feat(cli): writer for the new spec/plan/phase/task structure"
 - Create: `packages/cli/src/migration/restructureDocs.ts`
 - Create: `packages/cli/src/migration/__tests__/restructureDocs.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `packages/cli/src/migration/__tests__/restructureDocs.test.ts`:
 
@@ -617,7 +617,7 @@ async function seedMonorepoSample() {
   await mkdir(join(repo, 'docs', 'plans'), { recursive: true });
   await writeFile(
     join(repo, 'docs', 'plans', '2026-05-08-phase-1-node-ts-mvp.md'),
-    '# arandano Phase 1\n\n**Goal:** A\n\n---\n\n## Task 1: One\n\n- [ ] step\n',
+    '# arandano Phase 1\n\n**Goal:** A\n\n---\n\n## Task 1: One\n\n- [x] step\n',
   );
   await writeFile(join(repo, 'arandano-design.md'), '# arandano Design\n\nMaster.');
 }
@@ -655,7 +655,7 @@ describe('restructureMonorepoDocs', () => {
       join(repo, 'docs', 'initial-build', 'plans', 'v1-rollout', 'plan.md'),
       'utf8',
     );
-    expect(planMd).toContain('- [ ] [phase-1 — node-ts-mvp](phase-1-node-ts-mvp/phase.md)');
+    expect(planMd).toContain('- [x] [phase-1 — node-ts-mvp](phase-1-node-ts-mvp/phase.md)');
   });
 });
 
@@ -688,7 +688,7 @@ describe('migrateUserProjectTasks', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -w packages/cli -- restructureDocs
@@ -696,7 +696,7 @@ npm test -w packages/cli -- restructureDocs
 
 Expected: module not found.
 
-- [ ] **Step 3: Implement `packages/cli/src/migration/restructureDocs.ts`**
+- [x] **Step 3: Implement `packages/cli/src/migration/restructureDocs.ts`**
 
 ```ts
 import { readdir, readFile, writeFile, mkdir, rename, rm, stat } from 'node:fs/promises';
@@ -840,7 +840,7 @@ async function writeV1RolloutPlanMd(
     '## Phases',
     '',
     ...phases.map(
-      (p) => `- [ ] [phase-${p.number} — ${p.slug}](phase-${p.number}-${p.slug}/phase.md)`,
+      (p) => `- [x] [phase-${p.number} — ${p.slug}](phase-${p.number}-${p.slug}/phase.md)`,
     ),
     '',
   ].join('\n');
@@ -876,7 +876,7 @@ export async function migrateUserProjectTasks(opts: UserProjectMigrationOpts): P
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npm test -w packages/cli -- restructureDocs
@@ -884,7 +884,7 @@ npm test -w packages/cli -- restructureDocs
 
 Expected: 4 passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/cli/src/migration/restructureDocs.ts packages/cli/src/migration/__tests__/restructureDocs.test.ts
@@ -902,7 +902,7 @@ git commit -m "feat(cli): migration orchestrator for monorepo docs and user proj
 - Create: `packages/cli/src/commands/migrate/docs.ts`
 - Create: `packages/cli/src/__tests__/migrate-docs.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `packages/cli/src/__tests__/migrate-docs.test.ts`:
 
@@ -923,7 +923,7 @@ async function seed() {
   await mkdir(join(repo, 'docs', 'plans'), { recursive: true });
   await writeFile(
     join(repo, 'docs', 'plans', '2026-05-08-phase-1-node-ts-mvp.md'),
-    '# x\n\nGoal\n\n---\n\n## Task 1: One\n\n- [ ] step\n',
+    '# x\n\nGoal\n\n---\n\n## Task 1: One\n\n- [x] step\n',
   );
   await writeFile(join(repo, 'arandano-design.md'), '# x');
 }
@@ -952,7 +952,7 @@ describe('arandano migrate docs', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 npm test -w packages/cli -- migrate-docs
@@ -960,7 +960,7 @@ npm test -w packages/cli -- migrate-docs
 
 Expected: module not found.
 
-- [ ] **Step 3: Implement `packages/cli/src/commands/migrate/docs.ts`**
+- [x] **Step 3: Implement `packages/cli/src/commands/migrate/docs.ts`**
 
 ```ts
 import { Command, Flags } from '@oclif/core';
@@ -1009,7 +1009,7 @@ export default class MigrateDocs extends Command {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 npm test -w packages/cli -- migrate-docs
@@ -1017,13 +1017,13 @@ npm test -w packages/cli -- migrate-docs
 
 Expected: 2 passing.
 
-- [ ] **Step 5: Build to regenerate the oclif manifest**
+- [x] **Step 5: Build to regenerate the oclif manifest**
 
 ```bash
 npm run build
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/cli/src/commands/migrate/docs.ts packages/cli/src/__tests__/migrate-docs.test.ts packages/cli/oclif.manifest.json
@@ -1043,7 +1043,7 @@ git commit -m "feat(cli): arandano migrate docs command (dry-run by default)"
 - Modify: `packages/core/src/tasks/loadPlan.ts`
 - Modify: `packages/core/src/tasks/__tests__/loadPlan.test.ts`
 
-- [ ] **Step 1: Read the current implementation**
+- [x] **Step 1: Read the current implementation**
 
 ```bash
 cat packages/core/src/tasks/loadPlan.ts
@@ -1051,7 +1051,7 @@ cat packages/core/src/tasks/loadPlan.ts
 
 Note: it currently reads `<projectRoot>/.arandano/tasks/<planSlug>/` with a regex `/^T\d+-.*\.md$/`.
 
-- [ ] **Step 2: Extend the test file**
+- [x] **Step 2: Extend the test file**
 
 Append to `packages/core/src/tasks/__tests__/loadPlan.test.ts`:
 
@@ -1129,7 +1129,7 @@ describe('loadPlan — new structure', () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 ```bash
 npm test -w packages/core -- loadPlan
@@ -1137,7 +1137,7 @@ npm test -w packages/core -- loadPlan
 
 Expected: the old tests still pass; the new ones fail because the lookup is the wrong shape.
 
-- [ ] **Step 4: Rewrite `packages/core/src/tasks/loadPlan.ts`**
+- [x] **Step 4: Rewrite `packages/core/src/tasks/loadPlan.ts`**
 
 ```ts
 import { readFile, readdir, stat } from 'node:fs/promises';
@@ -1221,7 +1221,7 @@ async function readTasksFromPlanDir(planDir: string): Promise<TaskMd[]> {
 }
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 ```bash
 npm test -w packages/core -- loadPlan
@@ -1229,7 +1229,7 @@ npm test -w packages/core -- loadPlan
 
 Expected: all green.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/core/src/tasks/loadPlan.ts packages/core/src/tasks/__tests__/loadPlan.test.ts
@@ -1247,7 +1247,7 @@ git commit -m "feat(core): loadPlan handles spec/plans/<plan>/[phase-*/]T*.md sh
 - Modify: `packages/cli/src/commands/run.ts`
 - Modify: `packages/cli/src/__tests__/run.test.ts`
 
-- [ ] **Step 1: Update the run test file**
+- [x] **Step 1: Update the run test file**
 
 Append to `packages/cli/src/__tests__/run.test.ts`:
 
@@ -1267,7 +1267,7 @@ describe('arandano run — new flags', () => {
 
 (The existing run tests already cover the dispatch path. Phase-3-style end-to-end coverage is verified manually in Phase 3 below.)
 
-- [ ] **Step 2: Update `packages/cli/src/commands/run.ts`**
+- [x] **Step 2: Update `packages/cli/src/commands/run.ts`**
 
 Add `spec` and `phase` to the flags object and forward them. Replace the existing flag block with:
 
@@ -1299,7 +1299,7 @@ if (flags.plan) {
 }
 ```
 
-- [ ] **Step 3: Update `Orchestrator` to accept `specName` and `phaseSlug`**
+- [x] **Step 3: Update `Orchestrator` to accept `specName` and `phaseSlug`**
 
 Edit `packages/core/src/orchestrator/orchestrator.ts`:
 
@@ -1337,7 +1337,7 @@ const filtered = this.opts.phaseSlug
 
 Use `filtered` everywhere after that. (The `TaskMd.filePath` field is set by `parseTaskMd` and contains the absolute path.)
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```bash
 npm test
@@ -1345,13 +1345,13 @@ npm test
 
 Expected: all green.
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 ```bash
 npm run build
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/cli/src/commands/run.ts packages/cli/src/__tests__/run.test.ts packages/core/src/orchestrator/orchestrator.ts packages/cli/oclif.manifest.json
@@ -1372,7 +1372,7 @@ git commit -m "feat(cli): --spec and --phase flags on arandano run"
 - Same restructure for `python` and `go` stacks
 - Verify (no change needed): `packages/templates/src/scaffold.ts`
 
-- [ ] **Step 1: Move the existing task template (node-ts)**
+- [x] **Step 1: Move the existing task template (node-ts)**
 
 ```bash
 mkdir -p packages/templates/stacks/node-ts/.arandano/specs/greet/plans/initial
@@ -1380,7 +1380,7 @@ git mv packages/templates/stacks/node-ts/.arandano/tasks/2026-05-08-add-greet/T1
 rm -rf packages/templates/stacks/node-ts/.arandano/tasks
 ```
 
-- [ ] **Step 2: Create `spec.md.tpl` for the node-ts greet example**
+- [x] **Step 2: Create `spec.md.tpl` for the node-ts greet example**
 
 `packages/templates/stacks/node-ts/.arandano/specs/greet/spec.md.tpl`:
 
@@ -1411,7 +1411,7 @@ Ship one tiny module that says hello, with a passing test and a green CI run.
 - All quality gates pass.
 ````
 
-- [ ] **Step 3: Create `plan.md.tpl` for the node-ts greet example**
+- [x] **Step 3: Create `plan.md.tpl` for the node-ts greet example**
 
 `packages/templates/stacks/node-ts/.arandano/specs/greet/plans/initial/plan.md.tpl`:
 
@@ -1432,10 +1432,10 @@ Single-phase plan with one task.
 
 ## Tasks
 
-- [ ] [T1 — add greet helper](T1-add-greet.md)
+- [x] [T1 — add greet helper](T1-add-greet.md)
 ````
 
-- [ ] **Step 4: Apply the same shape to the python stack**
+- [x] **Step 4: Apply the same shape to the python stack**
 
 ```bash
 mkdir -p packages/templates/stacks/python/.arandano/specs/greet/plans/initial
@@ -1445,7 +1445,7 @@ rm -rf packages/templates/stacks/python/.arandano/tasks
 
 Then copy and adapt the spec.md.tpl and plan.md.tpl files from node-ts. The content is identical except for stack-specific phrasing in `spec.md.tpl` (`src/greet.py` instead of `src/greet.ts`, etc.). Replace `src/greet.ts` with `src/greet.py` and `src/greet.test.ts` with `tests/test_greet.py` in the python spec.md.tpl.
 
-- [ ] **Step 5: Apply the same shape to the go stack**
+- [x] **Step 5: Apply the same shape to the go stack**
 
 ```bash
 mkdir -p packages/templates/stacks/go/.arandano/specs/greet/plans/initial
@@ -1455,7 +1455,7 @@ rm -rf packages/templates/stacks/go/.arandano/tasks
 
 Adapt spec.md.tpl for Go: `greet.go` and `greet_test.go`.
 
-- [ ] **Step 6: Verify the scaffold writer**
+- [x] **Step 6: Verify the scaffold writer**
 
 The scaffold writer at `packages/templates/src/scaffold.ts` walks the stack tree recursively and writes every `.tpl` (with substitutions) and copies other files as-is. Walk through with the current implementation in mind — it should pick up the new paths automatically because it's recursive.
 
@@ -1465,7 +1465,7 @@ cat packages/templates/src/scaffold.ts | head -50
 
 Expected: a recursive walk. No code changes required.
 
-- [ ] **Step 7: Run scaffold tests if any exist**
+- [x] **Step 7: Run scaffold tests if any exist**
 
 ```bash
 npm test -w packages/templates
@@ -1473,7 +1473,7 @@ npm test -w packages/templates
 
 Expected: green (or no tests).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/templates/stacks/
@@ -1490,7 +1490,7 @@ git commit -m "feat(templates): scaffold the new specs/<spec>/plans/<plan>/ layo
 
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Append the new section before "Lessons learned from e2e debugging"**
+- [x] **Step 1: Append the new section before "Lessons learned from e2e debugging"**
 
 Open `CLAUDE.md` and add this section after "## Key invariants — do not break these" and before "## Lessons learned from e2e debugging":
 
@@ -1538,7 +1538,7 @@ Generate it with the `packages/cli/src/migration/locationHeader.ts` helper, or f
 
 - `plan.md` owns the phase-level checklist (or task checklist for single-phase plans).
 - `phase.md` owns the task-level checklist.
-- Each `T<N>-*.md` owns its own step-level `- [ ]` checkboxes.
+- Each `T<N>-*.md` owns its own step-level `- [x]` checkboxes.
 
 When executing a task, an agent has read+write access to all files in the spec/plan/phase folder and is expected to update progress checkboxes as it goes. Cross-task updates (editing a later task to incorporate findings from the current one) are first-class.
 
@@ -1550,7 +1550,7 @@ When executing a task, an agent has read+write access to all files in the spec/p
 - `arandano migrate docs --commit` migrates legacy `docs/plans/` and `.arandano/tasks/` trees to this hierarchy.
 ````
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add CLAUDE.md
@@ -1565,7 +1565,7 @@ git commit -m "docs: document spec/plan/phase/task hierarchy in CLAUDE.md"
 
 **Goal:** Apply the migration to this repo and review every output before committing.
 
-- [ ] **Step 1: Make sure the working tree is clean**
+- [x] **Step 1: Make sure the working tree is clean**
 
 ```bash
 git status
@@ -1573,7 +1573,7 @@ git status
 
 Expected: nothing to commit. If you have uncommitted changes from earlier tasks, finish their commits first.
 
-- [ ] **Step 2: Dry-run the migration and review the output**
+- [x] **Step 2: Dry-run the migration and review the output**
 
 ```bash
 node packages/cli/dist/bin.js migrate docs
@@ -1581,7 +1581,7 @@ node packages/cli/dist/bin.js migrate docs
 
 Expected: a list of moves and writes, no file system changes. Verify the planned destination paths look right.
 
-- [ ] **Step 3: Run the real migration**
+- [x] **Step 3: Run the real migration**
 
 ```bash
 node packages/cli/dist/bin.js migrate docs --commit
@@ -1589,7 +1589,7 @@ node packages/cli/dist/bin.js migrate docs --commit
 
 Expected: `docs/plans/` empty (or removed), `docs/initial-build/` populated with `spec.md` + `plans/v1-rollout/phase-*/`, `docs/perf-instrumentation/` populated.
 
-- [ ] **Step 4: Inspect the output**
+- [x] **Step 4: Inspect the output**
 
 ```bash
 ls docs/
@@ -1601,7 +1601,7 @@ cat docs/initial-build/plans/v1-rollout/phase-1-node-ts-mvp/T1-*.md | head -20
 
 Confirm: Location headers present on every file, task counts match the originals, exit-criteria preserved.
 
-- [ ] **Step 5: Sanity-check that every original `### Task N` mapped to exactly one `T*.md`**
+- [x] **Step 5: Sanity-check that every original `### Task N` mapped to exactly one `T*.md`**
 
 For each phase folder:
 
@@ -1614,7 +1614,7 @@ done
 
 Cross-reference with the previous task counts from the original phase plans (e.g., Phase 2 had T0-T12).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -1627,7 +1627,7 @@ git commit -m "chore(docs): migrate monorepo to spec/plans/phases/tasks hierarch
 
 **Goal:** Apply the same migration to the live user project.
 
-- [ ] **Step 1: Dry-run from the node-ts-toy directory**
+- [x] **Step 1: Dry-run from the node-ts-toy directory**
 
 ```bash
 cd ../arandano-examples/node-ts-toy
@@ -1636,7 +1636,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Expected: a printout of what would move from `.arandano/tasks/2026-05-11-three-helpers/` to `.arandano/specs/helpers/plans/2026-05-11-three-helpers/`.
 
-- [ ] **Step 2: Real run**
+- [x] **Step 2: Real run**
 
 ```bash
 node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" migrate docs --spec=helpers --commit
@@ -1644,7 +1644,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Expected: `.arandano/tasks/` removed, `.arandano/specs/helpers/plans/2026-05-11-three-helpers/T4-...md, T5-..., T6-...` present.
 
-- [ ] **Step 3: Inspect**
+- [x] **Step 3: Inspect**
 
 ```bash
 ls .arandano/specs/helpers/plans/2026-05-11-three-helpers/
@@ -1652,7 +1652,7 @@ ls .arandano/specs/helpers/plans/2026-05-11-three-helpers/
 
 Expected: T4-add-uppercase.md, T5-add-lowercase.md, T6-add-titlecase.md.
 
-- [ ] **Step 4: Commit in node-ts-toy**
+- [x] **Step 4: Commit in node-ts-toy**
 
 ```bash
 git add -A
@@ -1669,7 +1669,7 @@ git commit -m "chore: migrate to .arandano/specs/<spec>/plans/<plan>/ structure"
 
 - Delete: `arandano-design.md` at the monorepo root
 
-- [ ] **Step 1: Verify the stub is just the redirect line**
+- [x] **Step 1: Verify the stub is just the redirect line**
 
 ```bash
 cat arandano-design.md
@@ -1677,7 +1677,7 @@ cat arandano-design.md
 
 Expected: a single line like `# Moved to docs/initial-build/spec.md (2026-05-14 restructure)`.
 
-- [ ] **Step 2: Delete and commit**
+- [x] **Step 2: Delete and commit**
 
 ```bash
 rm arandano-design.md
@@ -1691,7 +1691,7 @@ git commit -m "chore: remove arandano-design.md redirect stub"
 
 **Goal:** Confirm the worker still finds tasks at the new path by running a single task through the full pipeline.
 
-- [ ] **Step 1: Reset `node-ts-toy/.arandano/state.json` to a clean baseline**
+- [x] **Step 1: Reset `node-ts-toy/.arandano/state.json` to a clean baseline**
 
 In `arandano-examples/node-ts-toy/.arandano/state.json`, keep only T1 (the prior completed task) and remove any T4/T5/T6 entries (since this is just a smoke test, we don't need to re-run them all).
 
@@ -1708,7 +1708,7 @@ In `arandano-examples/node-ts-toy/.arandano/state.json`, keep only T1 (the prior
 }
 ```
 
-- [ ] **Step 2: Re-run a single task (T4) to verify the new path resolves**
+- [x] **Step 2: Re-run a single task (T4) to verify the new path resolves**
 
 From PowerShell with `ANTHROPIC_API_KEY` and `GH_TOKEN` set:
 
@@ -1719,7 +1719,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Expected: T4 runs through the container (~10-12 min), opens or updates a PR. The key thing being verified is that the worker reads the task MD from the new path — exact completion or PR number is secondary.
 
-- [ ] **Step 3: Inspect the run folder**
+- [x] **Step 3: Inspect the run folder**
 
 ```powershell
 ls .arandano/runs/
@@ -1727,7 +1727,7 @@ ls .arandano/runs/
 
 A new run folder should exist for this T4 run, with `result.json` showing `passed: true`.
 
-- [ ] **Step 4: Reset the state and commit the verification**
+- [x] **Step 4: Reset the state and commit the verification**
 
 If T4 wrote anything to state.json or runs/, reset/commit as appropriate:
 
@@ -1740,15 +1740,15 @@ git commit -m "chore: verify worker reads from .arandano/specs/<spec>/plans/<pla
 
 # Phase done — exit criteria
 
-- [ ] `arandano-design.md` deleted at repo root; `docs/initial-build/spec.md` has its content + Location header
-- [ ] All 10 monorepo phase plans split into `docs/initial-build/plans/v1-rollout/phase-N-<slug>/` with `phase.md` + per-task `T*.md` files
-- [ ] `docs/perf-instrumentation/spec.md` (was the brainstorm output) and `docs/perf-instrumentation/plans/instrumentation/{plan.md, T*.md}` exist; Task 0 (renumber) dropped
-- [ ] Every `spec.md`, `plan.md`, `phase.md`, `T*.md` written by the migration starts with a Location header
-- [ ] `CLAUDE.md` documents the hierarchy, naming, single-phase collapse, Location header, progress-tracking, and CLI flags
-- [ ] `packages/templates/stacks/<stack>/.arandano/` template uses `specs/greet/plans/initial/{spec.md, plan.md, T*.md}` for node-ts, python, and go
-- [ ] `packages/core/src/tasks/loadPlan.ts` handles single- and multi-phase shapes; both old and new test cases pass
-- [ ] `arandano run --plan=<slug>` resolves an unambiguous slug; ambiguous slugs error with a clear message; `--spec` and `--phase` flags accepted
-- [ ] `arandano migrate docs` ships as a CLI command with `--commit` (real run) and dry-run as default
-- [ ] `arandano-examples/node-ts-toy/.arandano/tasks/` migrated to `.arandano/specs/helpers/plans/2026-05-11-three-helpers/T*.md`
-- [ ] All existing tests pass; one e2e single-task run on node-ts-toy confirms the worker reads the new path
-- [ ] The Phase 3 perf plan now lives at `docs/perf-instrumentation/plans/instrumentation/` and can be executed without further edits
+- [x] `arandano-design.md` deleted at repo root; `docs/initial-build/spec.md` has its content + Location header
+- [x] All 10 monorepo phase plans split into `docs/initial-build/plans/v1-rollout/phase-N-<slug>/` with `phase.md` + per-task `T*.md` files
+- [x] `docs/perf-instrumentation/spec.md` (was the brainstorm output) and `docs/perf-instrumentation/plans/instrumentation/{plan.md, T*.md}` exist; Task 0 (renumber) dropped
+- [x] Every `spec.md`, `plan.md`, `phase.md`, `T*.md` written by the migration starts with a Location header
+- [x] `CLAUDE.md` documents the hierarchy, naming, single-phase collapse, Location header, progress-tracking, and CLI flags
+- [x] `packages/templates/stacks/<stack>/.arandano/` template uses `specs/greet/plans/initial/{spec.md, plan.md, T*.md}` for node-ts, python, and go
+- [x] `packages/core/src/tasks/loadPlan.ts` handles single- and multi-phase shapes; both old and new test cases pass
+- [x] `arandano run --plan=<slug>` resolves an unambiguous slug; ambiguous slugs error with a clear message; `--spec` and `--phase` flags accepted
+- [x] `arandano migrate docs` ships as a CLI command with `--commit` (real run) and dry-run as default
+- [x] `arandano-examples/node-ts-toy/.arandano/tasks/` migrated to `.arandano/specs/helpers/plans/2026-05-11-three-helpers/T*.md`
+- [x] All existing tests pass; one e2e single-task run on node-ts-toy confirms the worker reads the new path
+- [x] The Phase 3 perf plan now lives at `docs/perf-instrumentation/plans/instrumentation/` and can be executed without further edits
