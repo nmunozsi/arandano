@@ -76,6 +76,43 @@ The Dockerfile creates `worker` at UID **1001** (node image already owns 1000). 
 
 ---
 
+## Commit conventions
+
+All commits — both human and worker-authored — MUST follow the format:
+
+```
+:emoji: type(scope): subject
+```
+
+Where `:emoji:` is one of the 16 curated shortcodes, paired 1:1 with the Conventional Commits type. The custom commitlint pack at `packages/templates/commitlint-rules/` enforces this; the same pack ships with every scaffolded project.
+
+### Curated mapping
+
+| Shortcode               | Type     | Use for                          |
+| ----------------------- | -------- | -------------------------------- |
+| `:sparkles:`            | feat     | New feature for the user         |
+| `:bug:`                 | fix      | User-visible bug fix             |
+| `:ambulance:`           | fix      | Critical hotfix                  |
+| `:lock:`                | fix      | Security-impacting fix           |
+| `:zap:`                 | perf     | Performance improvement          |
+| `:recycle:`             | refactor | Refactor with no behavior change |
+| `:fire:`                | refactor | Remove code/files                |
+| `:white_check_mark:`    | test     | Add or update tests              |
+| `:memo:`                | docs     | Docs only                        |
+| `:art:`                 | style    | Formatting, whitespace, no logic |
+| `:rotating_light:`      | style    | Fix linter warnings              |
+| `:wrench:`              | chore    | Config / tooling                 |
+| `:construction_worker:` | ci       | CI changes                       |
+| `:arrow_up:`            | chore    | Upgrade dependencies             |
+| `:arrow_down:`          | chore    | Downgrade dependencies           |
+| `:bookmark:`            | chore    | Release / version tag            |
+
+Use the **shortcode** form (`:sparkles:`), not the unicode glyph. Merge commits (`Merge …`) are exempt.
+
+The worker reads `packages/skills/src/skills/gitmoji-commits/SKILL.md` (baked into the worker image at `/opt/arandano/skills/gitmoji-commits/SKILL.md`) and follows the same rule on every commit it produces.
+
+---
+
 ## Docs and tool folder structure
 
 All design + planning + agentic work follows this hierarchy:
