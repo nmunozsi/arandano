@@ -8,6 +8,7 @@ export default tseslint.config(
       '**/node_modules/**',
       'packages/templates/stacks/**',
       'packages/templates/commitlint-rules/**',
+      'packages/skills/scripts/**',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
