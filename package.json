@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run -ws build --if-present",
+    "build": "npm run build -w packages/core && npm run build -w packages/executors-docker -w packages/templates -w packages/skills && npm run build -w packages/cli",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . --max-warnings=0",

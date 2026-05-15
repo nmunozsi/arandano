@@ -1,0 +1,18 @@
+linters-settings:
+  govet:
+    enable-all: true
+  revive:
+    min-confidence: 0.8
+
+linters:
+  enable-all: false
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - gosimple
+    - unused
+    - ineffassign
+    - typecheck
+    - revive
+    - gosec

@@ -43,13 +43,17 @@ const task: TaskRun = {
 describe('DockerExecutor', () => {
   it('starts a container and returns a handle', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
       client: client as never,
       hostEnv: {},
       now: () => new Date('2026-05-08T19:30:00Z'),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     expect(h.id).toContain('T1');
@@ -58,13 +62,17 @@ describe('DockerExecutor', () => {
 
   it('reports ok exit when container exits 0', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     const res = await exec.wait(h);
@@ -76,13 +84,17 @@ describe('DockerExecutor', () => {
   it('reports error exit when container exits non-zero', async () => {
     const c = fakeContainer();
     c.wait = vi.fn(() => Promise.resolve({ StatusCode: 7 }));
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     const res = await exec.wait(h);
@@ -92,13 +104,17 @@ describe('DockerExecutor', () => {
 
   it('cancel calls stop on the container', async () => {
     const c = fakeContainer();
-    const client = { createContainer: vi.fn(() => Promise.resolve(c)) };
+    const client = {
+      pull: vi.fn(() => Promise.resolve()),
+      createContainer: vi.fn(() => Promise.resolve(c)),
+    };
     const exec = new DockerExecutor({
       image: 'x',
       projectRoot: '/r',
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
+      cloneProject: async () => {},
     });
     const h = await exec.start(task);
     await exec.cancel(h);

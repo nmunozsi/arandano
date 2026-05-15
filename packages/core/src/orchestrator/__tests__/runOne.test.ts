@@ -13,7 +13,7 @@ beforeEach(async () => {
 });
 
 async function seedProject() {
-  await mkdir(join(dir, '.arandano', 'tasks', 'p'), { recursive: true });
+  await mkdir(join(dir, '.arandano', 'specs', 'default', 'plans', 'p'), { recursive: true });
   await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
   await mkdir(join(dir, 'src'), { recursive: true });
   await mkdir(join(dir, 'planning', 'memory'), { recursive: true });
@@ -21,7 +21,7 @@ async function seedProject() {
   await writeFile(join(dir, 'planning', 'memory', 'coding-standards.md'), '# standards');
   await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '# coder');
   await writeFile(
-    join(dir, '.arandano', 'tasks', 'p', 'T1-foo.md'),
+    join(dir, '.arandano', 'specs', 'default', 'plans', 'p', 'T1-foo.md'),
     '---\nid: T1\ntitle: foo\nrole: coder\n---\nbody',
   );
   await writeFile(

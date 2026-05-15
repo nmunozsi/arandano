@@ -1,5 +1,44 @@
 {
   "commands": {
+    "cleanup": {
+      "aliases": [],
+      "args": {},
+      "description": "Remove run artifacts and merged agent branches.",
+      "flags": {
+        "dry": {
+          "description": "print what would be removed but do not delete",
+          "name": "dry",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "cleanup",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "cleanup.js"]
+    },
+    "doctor": {
+      "aliases": [],
+      "args": {},
+      "description": "Verify Docker, gh, and repo state.",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "doctor",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "doctor.js"]
+    },
     "init": {
       "aliases": [],
       "args": {},
@@ -62,17 +101,60 @@
       "isESM": true,
       "relativePath": ["dist", "commands", "init.js"]
     },
-    "run": {
+    "retry": {
       "aliases": [],
       "args": {
         "taskId": {
-          "description": "task id (e.g. T1)",
           "name": "taskId",
           "required": true
         }
       },
-      "description": "Dispatch a task to a local Docker worker.",
+      "description": "Reset a failed task so the next run picks it up.",
       "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "retry",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "retry.js"]
+    },
+    "run": {
+      "aliases": [],
+      "args": {
+        "taskId": {
+          "description": "task id (omit when using --plan)",
+          "name": "taskId",
+          "required": false
+        }
+      },
+      "description": "Run a single task or a whole plan.",
+      "flags": {
+        "plan": {
+          "description": "plan slug under .arandano/specs/<spec>/plans/<slug>/",
+          "name": "plan",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "spec": {
+          "description": "spec name (disambiguates ambiguous plan slugs)",
+          "name": "spec",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "phase": {
+          "description": "phase slug to run a single phase of a multi-phase plan",
+          "name": "phase",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
       "hasDynamicHelp": false,
       "hiddenAliases": [],
       "id": "run",
@@ -83,6 +165,22 @@
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": ["dist", "commands", "run.js"]
+    },
+    "status": {
+      "aliases": [],
+      "args": {},
+      "description": "Show task status from .arandano/state.json",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "status",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "status.js"]
     },
     "version": {
       "aliases": [],
@@ -99,6 +197,163 @@
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": ["dist", "commands", "version.js"]
+    },
+    "issue:close": {
+      "aliases": [],
+      "args": {
+        "slug": {
+          "description": "issue slug or filename",
+          "name": "slug",
+          "required": true
+        }
+      },
+      "description": "Close an issue by slug or filename.",
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "issue:close",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "issue", "close.js"]
+    },
+    "issue:list": {
+      "aliases": [],
+      "args": {},
+      "description": "List issues under planning/issues/",
+      "flags": {
+        "status": {
+          "description": "filter by status (open | closed)",
+          "name": "status",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "issue:list",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "issue", "list.js"]
+    },
+    "issue:open": {
+      "aliases": [],
+      "args": {
+        "slug": {
+          "name": "slug",
+          "required": true
+        }
+      },
+      "description": "Create a new issue MD under planning/issues/",
+      "flags": {
+        "title": {
+          "name": "title",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "labels": {
+          "description": "comma-separated",
+          "name": "labels",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "issue:open",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "issue", "open.js"]
+    },
+    "memory:promote": {
+      "aliases": [],
+      "args": {
+        "runFolder": {
+          "description": "e.g. 2026-05-08T19-30Z-T1",
+          "name": "runFolder",
+          "required": true
+        }
+      },
+      "description": "Append a finding from a run journal to planning/memory/coding-standards.md",
+      "flags": {
+        "section": {
+          "name": "section",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "rule": {
+          "name": "rule",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:promote",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "memory", "promote.js"]
+    },
+    "migrate:docs": {
+      "aliases": [],
+      "args": {},
+      "description": "Migrate docs/plans/ and .arandano/tasks/ to the new spec→plans→phases→tasks hierarchy.",
+      "flags": {
+        "project": {
+          "description": "project root (defaults to current dir)",
+          "name": "project",
+          "default": "C:\\Users\\nmuno\\OneDrive\\Documentos\\Frutas\\arandano\\packages\\cli",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "commit": {
+          "description": "actually perform the migration (without this, runs as a dry-run)",
+          "name": "commit",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "spec": {
+          "description": "spec name to use when migrating a user project (.arandano/tasks/)",
+          "name": "spec",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "migrate:docs",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "migrate", "docs.js"]
     }
   },
   "version": "0.0.0"

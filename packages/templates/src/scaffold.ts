@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { globby } from 'globby';
 
 export interface ScaffoldOpts {
-  stack: 'node-ts';
+  stack: 'node-ts' | 'python' | 'go';
   targetDir: string;
   name: string;
   license: string;

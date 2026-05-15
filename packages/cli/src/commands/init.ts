@@ -21,11 +21,11 @@ export default class Init extends Command {
     if (!isSupportedStack(flags.stack)) {
       throw new Error(`unsupported stack: ${flags.stack}`);
     }
-    if (flags.stack !== 'node-ts') {
-      throw new Error(`stack ${flags.stack} not supported until Phase 2`);
+    if (!['node-ts', 'python', 'go'].includes(flags.stack)) {
+      throw new Error(`stack ${flags.stack} not supported yet`);
     }
     await scaffold({
-      stack: 'node-ts',
+      stack: flags.stack as 'node-ts' | 'python' | 'go',
       targetDir: flags.target ?? process.cwd(),
       name: flags.name,
       license: flags.license ?? 'MIT',

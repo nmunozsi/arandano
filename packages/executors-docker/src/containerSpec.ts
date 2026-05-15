@@ -20,6 +20,10 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
   const { task, image, projectRoot, runFolder, hostEnv } = opts;
 
   const env: string[] = [
+    // Allow git to operate on the mounted workspace regardless of file ownership
+    'GIT_CONFIG_COUNT=1',
+    'GIT_CONFIG_KEY_0=safe.directory',
+    `GIT_CONFIG_VALUE_0=${task.workdir}`,
     `ARANDANO_TASK_ID=${task.taskId}`,
     `ARANDANO_TASK_MD=${task.taskMdPath}`,
     `ARANDANO_ROLE_MD=${task.rolePath}`,
@@ -39,7 +43,7 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
   return {
     Image: image,
     WorkingDir: task.workdir,
-    User: '1000:1000',
+    User: '1001:1001',
     Env: env,
     HostConfig: {
       Binds: [`${projectRoot}:${task.workdir}`],

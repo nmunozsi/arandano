@@ -1,4 +1,4 @@
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, unlink, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { RunState } from '../types/state.js';
 
@@ -49,17 +49,20 @@ export class StateStore {
     const tempPath = `${this.filePath}.${Math.random().toString(36).slice(2)}.tmp`;
     const content = JSON.stringify(state, null, 2);
 
+    await writeFile(tempPath, content, 'utf-8');
     try {
-      await writeFile(tempPath, content, 'utf-8');
       await rename(tempPath, this.filePath);
-    } catch (error) {
-      // Cleanup temp file if it exists and write failed
-      try {
-        await rename(tempPath, tempPath + '.failed'); // Or just leave it for debugging, but rename ensures it doesn't conflict
-      } catch {
-        // Ignore cleanup errors
+    } catch (e) {
+      // Windows: rename over an existing file can fail with EPERM when
+      // another handle is open; fall back to direct write (lock serialises
+      // within-process writes so this is safe).
+      if ((e as NodeJS.ErrnoException).code === 'EPERM') {
+        await writeFile(this.filePath, content, 'utf-8');
+        await unlink(tempPath).catch(() => {});
+      } else {
+        await unlink(tempPath).catch(() => {});
+        throw e;
       }
-      throw error;
     }
   }
 }
