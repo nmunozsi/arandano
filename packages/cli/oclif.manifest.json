@@ -134,8 +134,22 @@
       "description": "Run a single task or a whole plan.",
       "flags": {
         "plan": {
-          "description": "plan slug under .arandano/tasks/<slug>/",
+          "description": "plan slug under .arandano/specs/<spec>/plans/<slug>/",
           "name": "plan",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "spec": {
+          "description": "spec name (disambiguates ambiguous plan slugs)",
+          "name": "spec",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "phase": {
+          "description": "phase slug to run a single phase of a multi-phase plan",
+          "name": "phase",
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"

@@ -52,7 +52,7 @@ batching:
 `;
 
 async function seedPlan(ids: Array<{ id: string; deps?: string[] }>, maxParallel = 2) {
-  const planDir = join(dir, '.arandano', 'tasks', 'p');
+  const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
   await mkdir(planDir, { recursive: true });
   await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
   await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '# coder');
@@ -122,7 +122,7 @@ describe('Orchestrator', () => {
   });
 
   it('spawns a reviewer task when reviewer_required=true on the coder task', async () => {
-    const planDir = join(dir, '.arandano', 'tasks', 'p');
+    const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
     await mkdir(planDir, { recursive: true });
     await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
     await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');

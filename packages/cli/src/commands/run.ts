@@ -13,7 +13,9 @@ export default class Run extends Command {
   };
 
   static override flags = {
-    plan: Flags.string({ description: 'plan slug under .arandano/tasks/<slug>/' }),
+    plan: Flags.string({ description: 'plan slug under .arandano/specs/<spec>/plans/<slug>/' }),
+    spec: Flags.string({ description: 'spec name (disambiguates ambiguous plan slugs)' }),
+    phase: Flags.string({ description: 'phase slug to run a single phase of a multi-phase plan' }),
   };
 
   async run(): Promise<void> {
@@ -25,7 +27,13 @@ export default class Run extends Command {
     const executor = new DockerExecutor({ image: cfg.executor.docker.image, projectRoot });
 
     if (flags.plan) {
-      const o = new Orchestrator({ projectRoot, planSlug: flags.plan, executor });
+      const o = new Orchestrator({
+        projectRoot,
+        planSlug: flags.plan,
+        executor,
+        ...(flags.spec !== undefined && { specName: flags.spec }),
+        ...(flags.phase !== undefined && { phaseSlug: flags.phase }),
+      });
       const summary = await o.run();
       this.log(
         `completed=${summary.completed.length} failed=${summary.failed.length} skipped=${summary.skipped.length}`,

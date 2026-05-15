@@ -66,7 +66,7 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
 }
 
 async function findTaskMd(root: string, id: string): Promise<string | undefined> {
-  const pattern = join(root, '.arandano', 'tasks', '**', `${id}-*.md`).replaceAll('\\', '/');
+  const pattern = join(root, '.arandano', 'specs', '**', `${id}-*.md`).replaceAll('\\', '/');
   for await (const match of glob(pattern)) return match;
   return undefined;
 }
