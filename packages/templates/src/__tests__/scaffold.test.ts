@@ -69,6 +69,19 @@ describe('scaffold', () => {
     await expect(stat(join(dir, '.gitignore.tpl'))).rejects.toThrow();
   });
 
+  it('node-ts ships the new gitmoji commitlint pack', async () => {
+    await scaffold({
+      stack: 'node-ts',
+      targetDir: dir,
+      name: 'demo',
+      license: 'MIT',
+      workerImage: 'x',
+      contactEmail: 'a@b',
+    });
+    const txt = await readFile(join(dir, '.commitlintrc.cjs'), 'utf8');
+    expect(txt).toContain('@arandano/templates/commitlint-rules');
+  });
+
   it('refuses to overwrite a non-empty target dir', async () => {
     await import('node:fs/promises').then((m) => m.writeFile(join(dir, 'preexisting.txt'), 'hi'));
     await expect(
