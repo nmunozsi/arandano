@@ -23,7 +23,7 @@
 
 ## Phases
 
-- [ ] [phase-1 — commit conventions](phase-1-commit-conventions/phase.md)
+- [x] [phase-1 — commit conventions](phase-1-commit-conventions/phase.md)
 - [ ] [phase-2 — architect role + live architecture.md](phase-2-architect-role/phase.md)
 
 ## Cross-phase invariants
