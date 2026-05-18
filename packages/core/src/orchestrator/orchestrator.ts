@@ -92,13 +92,14 @@ export class Orchestrator {
         let envOverride: Record<string, string> | undefined;
         if (id === 'T-architect') {
           const currentState = await store.read();
+          // Only coder tasks produce branches; reviewer/architect tasks don't contribute diffs.
           const planContextTasks = fms
             .filter((t) => t.role === 'coder' && currentState.tasks[t.id]?.branch)
             .map((t) => ({
               id: t.id,
               branch: currentState.tasks[t.id]!.branch!,
               ...(currentState.tasks[t.id]?.pr_url
-                ? { prUrl: currentState.tasks[t.id]!.pr_url }
+                ? { prUrl: currentState.tasks[t.id]?.pr_url }
                 : {}),
             }));
           const planContext = {
@@ -106,6 +107,7 @@ export class Orchestrator {
             defaultBranch: cfg.project.default_branch,
             tasks: planContextTasks,
           };
+          // Relative to workdir — Docker bind-mount resolves this from the container's CWD.
           const contextRelPath = `.arandano/runs/${planSlug}-context.json`;
           await mkdir(join(projectRoot, '.arandano', 'runs'), { recursive: true });
           await writeFile(join(projectRoot, contextRelPath), JSON.stringify(planContext, null, 2));

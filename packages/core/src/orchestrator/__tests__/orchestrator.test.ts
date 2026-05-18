@@ -268,7 +268,6 @@ describe('Orchestrator', () => {
     const archRun = capturedRuns.find((r) => r.taskId === 'T-architect');
     expect(archRun?.envSet?.['ARANDANO_PLAN_SLUG']).toBe('p');
     expect(archRun?.envSet?.['ARANDANO_PLAN_CONTEXT_PATH']).toBe('.arandano/runs/p-context.json');
-    expect(archRun?.envSet?.['ARANDANO_PLAN_CONTEXT_JSON']).toBeDefined();
     const ctx = JSON.parse(archRun!.envSet!['ARANDANO_PLAN_CONTEXT_JSON']!) as {
       planSlug: string;
       tasks: Array<{ id: string; branch: string; prUrl?: string }>;
