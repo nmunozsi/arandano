@@ -223,4 +223,35 @@ describe('Orchestrator', () => {
     const archRun = capturedRuns.find((r) => r.taskId === 'T-architect');
     expect(archRun?.envSet?.['ARANDANO_PLAN_SLUG']).toBe('p');
   });
+
+  it('passes ARANDANO_PLAN_MERGE_RANGE to T-architect task', async () => {
+    const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
+    await mkdir(planDir, { recursive: true });
+    await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+    await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');
+    await writeFile(join(dir, '.arandano', 'roles', 'architect.md'), '');
+    await writeFile(join(planDir, 'T1-x.md'), '---\nid: T1\ntitle: x\nrole: coder\n---\nbody');
+    const cfg = CONFIG(2).replace(
+      'roles:\n  coder:',
+      'roles:\n  architect:\n    cli: claude-code\n    model: m\n    enabled: true\n  coder:',
+    );
+    await writeFile(join(dir, '.arandano', 'config.yaml'), cfg);
+
+    const capturedRuns: TaskRun[] = [];
+    const exec: Executor = {
+      start: vi.fn((t) => {
+        capturedRuns.push(t);
+        return Promise.resolve({ id: t.taskId });
+      }),
+      wait: vi.fn(() => Promise.resolve({ exitCode: 0, reason: 'ok' as const })),
+      logs: vi.fn(() => (async function* () {})()),
+      cancel: vi.fn(() => Promise.resolve()),
+    };
+
+    await new Orchestrator({ projectRoot: dir, planSlug: 'p', executor: exec }).run();
+
+    const archRun = capturedRuns.find((r) => r.taskId === 'T-architect');
+    // Key must exist (even if empty — tmpdir has no git repo so range is '')
+    expect('ARANDANO_PLAN_MERGE_RANGE' in (archRun?.envSet ?? {})).toBe(true);
+  });
 });

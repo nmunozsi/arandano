@@ -1,5 +1,24 @@
+import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+
+async function gitMergeRange(projectRoot: string, defaultBranch: string): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync('git', [
+      '-C',
+      projectRoot,
+      'log',
+      '--format=%H',
+      `${defaultBranch}..HEAD`,
+    ]);
+    return stdout.trim();
+  } catch {
+    return '';
+  }
+}
 import { loadConfig } from '../config/load.js';
 import { loadPlan } from '../tasks/loadPlan.js';
 import { StateStore } from '../state/store.js';
@@ -90,13 +109,14 @@ export class Orchestrator {
 
       for (const id of ready) {
         const taskFilePath = taskFilePaths.get(id);
-        const envOverride =
-          id === 'T-architect'
-            ? {
-                ARANDANO_PLAN_SLUG: planSlug,
-                ...(architectPlanRoot ? { ARANDANO_PLAN_PATH: architectPlanRoot } : {}),
-              }
-            : undefined;
+        let envOverride: Record<string, string> | undefined;
+        if (id === 'T-architect') {
+          const mergeRange = await gitMergeRange(projectRoot, cfg.project.default_branch);
+          envOverride = {
+            ARANDANO_PLAN_SLUG: planSlug,
+            ARANDANO_PLAN_MERGE_RANGE: mergeRange,
+          };
+        }
         inFlight.set(
           id,
           runOne({
