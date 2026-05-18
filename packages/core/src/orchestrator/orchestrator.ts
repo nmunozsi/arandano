@@ -8,6 +8,7 @@ import { runOne } from './runOne.js';
 import type { Executor, ExitResult } from '../types/executor.js';
 import type { TaskFrontmatter } from '../types/task.js';
 import { synthesizeReviewerTask } from '../reviewer/synthesizeReviewerTask.js';
+import { synthesizeArchitectTask, type RunShape } from '../architect/synthesizeArchitectTask.js';
 
 export interface OrchestratorOpts {
   projectRoot: string;
@@ -15,6 +16,8 @@ export interface OrchestratorOpts {
   executor: Executor;
   specName?: string;
   phaseSlug?: string;
+  withArchitect?: boolean;
+  noArchitect?: boolean;
 }
 
 export interface RunSummary {
@@ -45,6 +48,31 @@ export class Orchestrator {
     const fms: TaskFrontmatter[] = tasks.map((t) => t.frontmatter);
     // Map from task id to its file path, used for co-locating synthesized reviewer tasks.
     const taskFilePaths = new Map(tasks.map((t) => [t.frontmatter.id, t.filePath]));
+
+    const runShape: RunShape = this.opts.phaseSlug ? 'phase' : 'plan';
+    const architectTask = synthesizeArchitectTask({
+      tasks: fms,
+      planSlug,
+      enabledInConfig: cfg.roles['architect']?.enabled === true,
+      withArchitect: this.opts.withArchitect === true,
+      noArchitect: this.opts.noArchitect === true,
+      runShape,
+    });
+    if (architectTask) {
+      fms.push(architectTask);
+      const planRoot = tasks[0] ? dirname(tasks[0].filePath) : join(projectRoot, '.arandano');
+      const archPath = join(planRoot, 'T-architect-auto.md');
+      const depsLine =
+        architectTask.depends_on && architectTask.depends_on.length > 0
+          ? `depends_on: [${architectTask.depends_on.join(', ')}]\n`
+          : '';
+      await writeFile(
+        archPath,
+        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\n${depsLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
+      );
+      taskFilePaths.set('T-architect', archPath);
+    }
+
     validateDag(fms);
 
     const store = new StateStore(join(projectRoot, '.arandano', 'state.json'));

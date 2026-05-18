@@ -145,4 +145,47 @@ describe('Orchestrator', () => {
     const r = await o.run();
     expect(r.completed.sort()).toEqual(['T1', 'T1-review']);
   });
+
+  it('appends T-architect when running a full plan with architect enabled in config', async () => {
+    const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
+    await mkdir(planDir, { recursive: true });
+    await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+    await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');
+    await writeFile(join(dir, '.arandano', 'roles', 'architect.md'), '');
+    await writeFile(join(planDir, 'T1-x.md'), '---\nid: T1\ntitle: x\nrole: coder\n---\nbody');
+    await writeFile(
+      join(planDir, 'T2-x.md'),
+      '---\nid: T2\ntitle: x\nrole: coder\ndepends_on: [T1]\n---\nbody',
+    );
+    // Config with architect.enabled=true
+    const cfg = CONFIG(2).replace(
+      'roles:\n  coder:',
+      'roles:\n  architect:\n    cli: claude-code\n    model: m\n    enabled: true\n  coder:',
+    );
+    await writeFile(join(dir, '.arandano', 'config.yaml'), cfg);
+
+    const exec = okExecutor();
+    const summary = await new Orchestrator({
+      projectRoot: dir,
+      planSlug: 'p',
+      executor: exec,
+      withArchitect: false,
+      noArchitect: false,
+    }).run();
+
+    expect(summary.completed).toContain('T-architect');
+  });
+
+  it('skips T-architect when --no-architect is passed', async () => {
+    await seedPlan([{ id: 'T1' }, { id: 'T2', deps: ['T1'] }]);
+    const exec = okExecutor();
+    const summary = await new Orchestrator({
+      projectRoot: dir,
+      planSlug: 'p',
+      executor: exec,
+      withArchitect: false,
+      noArchitect: true,
+    }).run();
+    expect(summary.completed).not.toContain('T-architect');
+  });
 });
