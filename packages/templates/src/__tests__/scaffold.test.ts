@@ -95,4 +95,44 @@ describe('scaffold', () => {
       }),
     ).rejects.toThrow(/not empty/);
   });
+
+  describe('scaffold architect surface', () => {
+    it('node-ts ships docs/architecture.md', async () => {
+      const dir2 = await mkdtemp(join(tmpdir(), 'arandano-arch-'));
+      try {
+        await scaffold({
+          stack: 'node-ts',
+          targetDir: dir2,
+          name: 'demo',
+          license: 'MIT',
+          workerImage: 'x',
+          contactEmail: 'a@b',
+        });
+        const arch = await readFile(join(dir2, 'docs', 'architecture.md'), 'utf8');
+        expect(arch).toContain('# demo — Architecture');
+        expect(arch).toContain('## 6. Open questions');
+      } finally {
+        await rm(dir2, { recursive: true, force: true });
+      }
+    });
+
+    it('node-ts config.yaml ships an architect role block', async () => {
+      const dir3 = await mkdtemp(join(tmpdir(), 'arandano-cfg-'));
+      try {
+        await scaffold({
+          stack: 'node-ts',
+          targetDir: dir3,
+          name: 'demo',
+          license: 'MIT',
+          workerImage: 'x',
+          contactEmail: 'a@b',
+        });
+        const cfg = await readFile(join(dir3, '.arandano', 'config.yaml'), 'utf8');
+        expect(cfg).toMatch(/architect:\s*\n\s*cli:/);
+        expect(cfg).toMatch(/enabled:\s*true/);
+      } finally {
+        await rm(dir3, { recursive: true, force: true });
+      }
+    });
+  });
 });

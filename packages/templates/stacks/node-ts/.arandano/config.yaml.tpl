@@ -25,6 +25,10 @@ roles:
     cli: claude-code
     model: claude-sonnet-4-6
     tdd: strict
+  architect:
+    cli: claude-code
+    model: claude-sonnet-4-6
+    enabled: true
 
 quality_defaults:
   format: required
