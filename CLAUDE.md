@@ -230,3 +230,21 @@ The `node-ts-toy` repo at `https://github.com/nmunozsi/node-ts-toy` is the canon
 - `package.json` must exist with vitest, prettier, and typescript-eslint as devDependencies
 - Agent branches (`agent/*`) left by failed runs can be deleted; the worker recreates them automatically
 - Task IDs must be unique across all plan folders — use T4/T5/T6 for three-helpers, not T1/T2/T3
+
+---
+
+## Architect role and architecture.md
+
+`docs/architecture.md` is the single source of truth for this project's architectural state. It has exactly six sections (Overview, Components, Data flow, Tech stack, Key decisions, Open questions); the template lives at `packages/templates/assets/architecture.md.tpl`.
+
+The `architect` role refreshes the file at the end of every full-plan `arandano run --plan=<slug>`. The orchestrator auto-spawns a synthetic `T-architect` task that depends on every other task in the plan; the worker reads `/opt/arandano/skills/architect/SKILL.md` and applies minimal-diff edits per its rules. Per-plan PR title: `:memo: docs(arch): refresh after <plan-slug>`.
+
+CLI flags on `arandano run`:
+
+- `--with-architect` — force the architect task even when disabled in config or running a phase.
+- `--no-architect` — suppress the architect task even when enabled in config.
+- The two flags are mutually exclusive; passing both errors before dispatch.
+- Single-task runs (`arandano run T<id>`) ignore both flags and never spawn architect.
+- Phase runs (`--plan=<slug> --phase=<slug>`) ignore the config default; the architect runs only if `--with-architect` is set explicitly.
+
+If the architect's edit produces no diff against `docs/architecture.md`, the worker logs `architect: no-op` and exits 0 without opening a PR. The orchestrator records `T-architect.result = "no-op"` in `state.json`.
