@@ -24,7 +24,7 @@
 ## Phases
 
 - [x] [phase-1 — commit conventions](phase-1-commit-conventions/phase.md)
-- [ ] [phase-2 — architect role + live architecture.md](phase-2-architect-role/phase.md)
+- [x] [phase-2 — architect role + live architecture.md](phase-2-architect-role/phase.md)
 
 ## Cross-phase invariants
 
@@ -34,4 +34,5 @@
 
 ## Follow-ups (filled in during execution)
 
-_(empty — append `- [ ]` items here when a task discovers out-of-scope work.)_
+- [ ] [F1 — set ARANDANO_PLAN_SLUG + ARANDANO_PLAN_MERGE_RANGE for T-architect container](phase-2-architect-role/F1-architect-env-vars.md)
+- [ ] [F2 — use plan-scoped or globally-unique task IDs in node-ts-toy e2e plans](phase-2-architect-role/F2-unique-task-ids.md)
