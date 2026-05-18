@@ -39,6 +39,10 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     const v = hostEnv[key];
     if (typeof v === 'string' && v.length > 0) env.push(`${key}=${v}`);
   }
+  // Direct env var injection (no host lookup)
+  for (const [k, v] of Object.entries(task.envSet ?? {})) {
+    env.push(`${k}=${v}`);
+  }
 
   return {
     Image: image,

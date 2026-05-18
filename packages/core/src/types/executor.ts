@@ -11,6 +11,7 @@ export interface TaskRun {
   tdd: TddMode;
   quality: QualitySpec;
   envPass: string[];
+  envSet?: Record<string, string>;
   workdir: string;
   timeoutMs: number;
   mcpServers: string[];

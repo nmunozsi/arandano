@@ -79,4 +79,23 @@ describe('buildContainerSpec', () => {
     expect(spec.User).toBeDefined();
     expect(spec.User).not.toBe('root');
   });
+
+  it('includes envSet values directly in env', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({
+        envSet: {
+          ARANDANO_PLAN_SLUG: 'smoke',
+          ARANDANO_PLAN_PATH: '/workspace/.arandano/specs/arch-smoke/plans/smoke',
+        },
+      }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_PLAN_SLUG=smoke');
+    expect(spec.Env).toContain(
+      'ARANDANO_PLAN_PATH=/workspace/.arandano/specs/arch-smoke/plans/smoke',
+    );
+  });
 });

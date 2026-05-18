@@ -58,10 +58,11 @@ export class Orchestrator {
       noArchitect: this.opts.noArchitect === true,
       runShape,
     });
+    let architectPlanRoot: string | null = null;
     if (architectTask) {
       fms.push(architectTask);
-      const planRoot = tasks[0] ? dirname(tasks[0].filePath) : join(projectRoot, '.arandano');
-      const archPath = join(planRoot, 'T-architect-auto.md');
+      architectPlanRoot = tasks[0] ? dirname(tasks[0].filePath) : join(projectRoot, '.arandano');
+      const archPath = join(architectPlanRoot, 'T-architect-auto.md');
       const depsLine =
         architectTask.depends_on && architectTask.depends_on.length > 0
           ? `depends_on: [${architectTask.depends_on.join(', ')}]\n`
@@ -88,9 +89,23 @@ export class Orchestrator {
       );
 
       for (const id of ready) {
+        const taskFilePath = taskFilePaths.get(id);
+        const envOverride =
+          id === 'T-architect'
+            ? {
+                ARANDANO_PLAN_SLUG: planSlug,
+                ...(architectPlanRoot ? { ARANDANO_PLAN_PATH: architectPlanRoot } : {}),
+              }
+            : undefined;
         inFlight.set(
           id,
-          runOne({ projectRoot, taskId: id, executor }).then((result) => ({ id, result })),
+          runOne({
+            projectRoot,
+            taskId: id,
+            executor,
+            ...(taskFilePath !== undefined ? { taskFilePath } : {}),
+            ...(envOverride !== undefined ? { envOverride } : {}),
+          }).then((result) => ({ id, result })),
         );
       }
 

@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Orchestrator } from '../orchestrator.js';
-import type { Executor } from '../../types/executor.js';
+import type { Executor, TaskRun } from '../../types/executor.js';
 
 let dir: string;
 beforeEach(async () => {
@@ -187,5 +187,40 @@ describe('Orchestrator', () => {
       noArchitect: true,
     }).run();
     expect(summary.completed).not.toContain('T-architect');
+  });
+
+  it('passes ARANDANO_PLAN_SLUG to T-architect task', async () => {
+    const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
+    await mkdir(planDir, { recursive: true });
+    await mkdir(join(dir, '.arandano', 'roles'), { recursive: true });
+    await writeFile(join(dir, '.arandano', 'roles', 'coder.md'), '');
+    await writeFile(join(dir, '.arandano', 'roles', 'architect.md'), '');
+    await writeFile(join(planDir, 'T1-x.md'), '---\nid: T1\ntitle: x\nrole: coder\n---\nbody');
+    const cfg = CONFIG(2).replace(
+      'roles:\n  coder:',
+      'roles:\n  architect:\n    cli: claude-code\n    model: m\n    enabled: true\n  coder:',
+    );
+    await writeFile(join(dir, '.arandano', 'config.yaml'), cfg);
+
+    const capturedRuns: TaskRun[] = [];
+    const exec: Executor = {
+      start: vi.fn((t) => {
+        capturedRuns.push(t);
+        return Promise.resolve({ id: t.taskId });
+      }),
+      wait: vi.fn(() => Promise.resolve({ exitCode: 0, reason: 'ok' as const })),
+      logs: vi.fn(() => (async function* () {})()),
+      cancel: vi.fn(() => Promise.resolve()),
+    };
+
+    const summary = await new Orchestrator({
+      projectRoot: dir,
+      planSlug: 'p',
+      executor: exec,
+    }).run();
+
+    expect(summary.completed).toContain('T-architect');
+    const archRun = capturedRuns.find((r) => r.taskId === 'T-architect');
+    expect(archRun?.envSet?.['ARANDANO_PLAN_SLUG']).toBe('p');
   });
 });
