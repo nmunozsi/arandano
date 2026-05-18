@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runOne } from '../runOne.js';
@@ -68,5 +68,62 @@ describe('runOne', () => {
     await expect(
       runOne({ projectRoot: dir, taskId: 'T999', executor: okExecutor() }),
     ).rejects.toThrow(/T999/);
+  });
+});
+
+describe('runOne — result.json back-propagation', () => {
+  it('writes branch and pr_url to state.json after a successful run', async () => {
+    await seedProject();
+    const runDir = join(dir, '.arandano', 'runs', 'test-run');
+    await mkdir(runDir, { recursive: true });
+    const resultPath = join(runDir, 'result.json');
+    await writeFile(
+      resultPath,
+      JSON.stringify({ branch: 'agent/T1-1234', pr_url: 'https://github.com/org/repo/pull/7' }),
+    );
+    const exec: Executor = {
+      ...okExecutor(),
+      wait: vi.fn(() =>
+        Promise.resolve({ exitCode: 0, reason: 'ok' as const, resultJsonPath: resultPath }),
+      ),
+    };
+    await runOne({ projectRoot: dir, taskId: 'T1', executor: exec });
+    const state = JSON.parse(await readFile(join(dir, '.arandano', 'state.json'), 'utf8')) as {
+      tasks: Record<string, { branch?: string; pr_url?: string }>;
+    };
+    expect(state.tasks['T1']?.branch).toBe('agent/T1-1234');
+    expect(state.tasks['T1']?.pr_url).toBe('https://github.com/org/repo/pull/7');
+  });
+
+  it('completes successfully when resultJsonPath points to a missing file', async () => {
+    await seedProject();
+    const exec: Executor = {
+      ...okExecutor(),
+      wait: vi.fn(() =>
+        Promise.resolve({
+          exitCode: 0,
+          reason: 'ok' as const,
+          resultJsonPath: join(dir, 'does-not-exist.json'),
+        }),
+      ),
+    };
+    const result = await runOne({ projectRoot: dir, taskId: 'T1', executor: exec });
+    expect(result.reason).toBe('ok');
+  });
+
+  it('completes successfully when result.json contains malformed JSON', async () => {
+    await seedProject();
+    const runDir = join(dir, '.arandano', 'runs', 'bad-run');
+    await mkdir(runDir, { recursive: true });
+    const resultPath = join(runDir, 'result.json');
+    await writeFile(resultPath, 'not valid json {{{');
+    const exec: Executor = {
+      ...okExecutor(),
+      wait: vi.fn(() =>
+        Promise.resolve({ exitCode: 0, reason: 'ok' as const, resultJsonPath: resultPath }),
+      ),
+    };
+    const result = await runOne({ projectRoot: dir, taskId: 'T1', executor: exec });
+    expect(result.reason).toBe('ok');
   });
 });

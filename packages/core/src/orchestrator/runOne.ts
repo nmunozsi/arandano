@@ -55,6 +55,7 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
 
   const handle = await executor.start(taskRun);
   const result = await executor.wait(handle, { timeoutMs: taskRun.timeoutMs });
+
   await store.update((state) => {
     const existing = state.tasks[taskRun.taskId] ?? { retry_count: 0, status: 'running' as const };
     state.tasks[taskRun.taskId] = {
@@ -64,6 +65,23 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
       ...(result.reason !== 'ok' ? { error: result.reason } : {}),
     };
   });
+
+  if (result.reason === 'ok' && result.resultJsonPath) {
+    try {
+      const raw = await readFile(result.resultJsonPath, 'utf8');
+      const r = JSON.parse(raw) as { branch?: unknown; pr_url?: unknown };
+      if (typeof r.branch === 'string' || typeof r.pr_url === 'string') {
+        await store.update((state) => {
+          const t = state.tasks[taskRun.taskId];
+          if (!t) return;
+          if (typeof r.branch === 'string') t.branch = r.branch;
+          if (typeof r.pr_url === 'string') t.pr_url = r.pr_url;
+        });
+      }
+    } catch {
+      // result.json absent or malformed — task still completed, silently skip
+    }
+  }
 
   return result;
 }
