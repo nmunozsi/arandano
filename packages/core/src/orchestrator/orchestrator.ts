@@ -68,7 +68,7 @@ export class Orchestrator {
           : '';
       await writeFile(
         archPath,
-        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\n${depsLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
+        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\ntdd: relaxed\n${depsLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
       );
       taskFilePaths.set('T-architect', archPath);
     }

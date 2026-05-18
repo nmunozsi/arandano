@@ -79,6 +79,18 @@ describe('synthesizeArchitectTask', () => {
     ).toThrow(/mutually exclusive/);
   });
 
+  it('returns a task on plan runs with --with-architect even when disabled in config', () => {
+    const r = synthesizeArchitectTask({
+      tasks: [t1, t2],
+      planSlug: 'p',
+      enabledInConfig: false,
+      withArchitect: true,
+      noArchitect: false,
+      runShape: 'plan',
+    });
+    expect(r?.id).toBe('T-architect');
+  });
+
   it('depends on every other task in the plan', () => {
     const r = synthesizeArchitectTask({
       tasks: [t1, t2],

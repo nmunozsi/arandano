@@ -97,6 +97,13 @@ batching:
     expect(cfg.roles['architect']?.enabled).toBe(true);
   });
 
+  it('evaluates enabledInConfig as false when architect role is absent', () => {
+    // validYaml has no architect role — cfg.roles['architect'] is undefined
+    const cfg = loadConfig(validYaml);
+    expect(cfg.roles['architect']).toBeUndefined();
+    expect(cfg.roles['architect']?.enabled === true).toBe(false);
+  });
+
   it('defaults architect.enabled to true when omitted', () => {
     const cfg = loadConfig(`
 project: { name: x, default_branch: main }

@@ -18,9 +18,11 @@ export default class Run extends Command {
     phase: Flags.string({ description: 'phase slug to run a single phase of a multi-phase plan' }),
     'with-architect': Flags.boolean({
       description: 'force the architect task to run even when disabled in config or in a phase run',
+      default: false,
     }),
     'no-architect': Flags.boolean({
       description: 'suppress the architect task even when enabled in config',
+      default: false,
     }),
   };
 
