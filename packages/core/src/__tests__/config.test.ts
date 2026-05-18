@@ -65,3 +65,61 @@ describe('loadConfig', () => {
     expect(() => loadConfig(bad)).toThrow(/delta/);
   });
 });
+
+describe('architect role config', () => {
+  it('parses architect role with enabled boolean', () => {
+    const cfg = loadConfig(`
+project:
+  name: x
+  default_branch: main
+executor:
+  backend: docker
+  docker: { image: x, workdir: /w, plugins_mount: baked-in, env_pass: [] }
+git: { forge: github, remote: origin, branch_prefix: agent/, open_pr: true }
+roles:
+  coder: { cli: claude-code, model: m, tdd: strict }
+  architect: { cli: claude-code, model: m, enabled: true }
+quality_defaults:
+  format: required
+  lint: required
+  typecheck: required
+  test: required
+  coverage: { min: 80, delta: any }
+  security: warn
+  commit_msg: conventional
+  reviewer_required: false
+batching:
+  max_parallel: 1
+  timeout_minutes: 45
+  retry_policy: { max_attempts: 1, on: [] }
+`);
+    expect(cfg.roles['architect']).toBeDefined();
+    expect(cfg.roles['architect']?.enabled).toBe(true);
+  });
+
+  it('defaults architect.enabled to true when omitted', () => {
+    const cfg = loadConfig(`
+project: { name: x, default_branch: main }
+executor:
+  backend: docker
+  docker: { image: x, workdir: /w, plugins_mount: baked-in, env_pass: [] }
+git: { forge: github, remote: origin, branch_prefix: agent/, open_pr: true }
+roles:
+  architect: { cli: claude-code, model: m }
+quality_defaults:
+  format: required
+  lint: required
+  typecheck: required
+  test: required
+  coverage: { min: 80, delta: any }
+  security: warn
+  commit_msg: conventional
+  reviewer_required: false
+batching:
+  max_parallel: 1
+  timeout_minutes: 45
+  retry_policy: { max_attempts: 1, on: [] }
+`);
+    expect(cfg.roles['architect']?.enabled).toBe(true);
+  });
+});

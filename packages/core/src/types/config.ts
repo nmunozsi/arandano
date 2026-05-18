@@ -29,7 +29,10 @@ export interface RoleConfig {
   cli: string;
   model: string;
   tdd?: TddMode;
+  enabled?: boolean;
 }
+
+export type ArchitectRoleConfig = RoleConfig & { enabled: boolean };
 
 export interface McpConfig {
   enabled: boolean;
