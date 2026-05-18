@@ -35,7 +35,6 @@ For large-scale projects this is insufficient. A plan introducing a new package,
 - Merging agent branches locally (keeps the orchestrator git-free).
 - Pre-computing diffs in the orchestrator (deferred to the architect to control token cost).
 - Changing how coder tasks push branches or open PRs.
-- Removing `ARANDANO_PLAN_MERGE_RANGE` (kept for backward compatibility, cleaned up separately).
 
 ## Components
 
@@ -86,17 +85,32 @@ After `executor.wait()` resolves with `reason: 'ok'`, `runOne` reads the `result
 
 **Timing:** Written in the T-architect dispatch block, after all coder and reviewer tasks have settled, before `runOne` is called for T-architect.
 
-### 3. `ARANDANO_PLAN_CONTEXT_PATH` — new env var for T-architect
+### 3. Context delivery — two env vars for two executor backends
 
 **File:** `packages/core/src/orchestrator/orchestrator.ts`
 
-Added to the `envOverride` for T-architect alongside the existing `ARANDANO_PLAN_SLUG` and `ARANDANO_PLAN_MERGE_RANGE`. Contains a **workdir-relative path** (e.g. `.arandano/runs/smoke-context.json`), consistent with how `ARANDANO_TASK_MD` and `ARANDANO_RUN_FOLDER` are set. The architect driver resolves it against `process.cwd()` (the bind-mounted workspace root inside the container).
+The orchestrator always sets **both** of the following in `envOverride` for T-architect:
+
+| Env var                      | Value                                                                        | Used by                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `ARANDANO_PLAN_CONTEXT_PATH` | workdir-relative path, e.g. `.arandano/runs/smoke-context.json`              | Docker executor (bind-mount makes the file accessible at the same path)                |
+| `ARANDANO_PLAN_CONTEXT_JSON` | the full `plan-context.json` content serialised as a single-line JSON string | k8s executor (clones fresh from `git_url`; host files are never accessible in the Pod) |
+
+Setting both is intentional and cheap — the JSON is small. The architect driver checks `ARANDANO_PLAN_CONTEXT_JSON` first (parse inline, no I/O), then falls back to reading `ARANDANO_PLAN_CONTEXT_PATH` (file read), then falls back to the legacy prompt. This means the k8s executor needs no special handling and no executor-specific code in the orchestrator.
+
+`ARANDANO_PLAN_SLUG` is retained. `ARANDANO_PLAN_MERGE_RANGE` is removed (see Component 6).
 
 ### 4. Architect driver — reads context, builds richer prompt
 
 **File:** `arandano-worker/lib/src/architect/architectDriver.ts`
 
-At startup, the driver reads `ARANDANO_PLAN_CONTEXT_PATH` and parses `plan-context.json`. The prompt replaces the current `git log ${mergeRange}` instruction with structured per-task guidance:
+At startup the driver resolves context using the priority chain:
+
+1. Parse `ARANDANO_PLAN_CONTEXT_JSON` directly (string → JSON, no I/O)
+2. Read and parse the file at `ARANDANO_PLAN_CONTEXT_PATH` relative to `process.cwd()`
+3. Fall back to a minimal prompt with no task list (no crash)
+
+The `mergeRange` variable and the `git log ${mergeRange}` prompt instruction are removed entirely. The prompt is replaced with structured per-task guidance:
 
 ```
 Coder tasks in this plan:
@@ -110,7 +124,7 @@ For each task you may run:
 Only fetch what you need. Read SKILL.md for guidance on what warrants a fetch.
 ```
 
-**Fallback:** When `ARANDANO_PLAN_CONTEXT_PATH` is absent or the file is unreadable, the driver falls back to the current prompt (no crash, no hard failure). This preserves backward compatibility with older orchestrator versions.
+**Fallback prompt** (no context available): identical to the current prompt minus the `git log` line — the architect reads plan files only.
 
 ### 5. SKILL.md — lazy-fetch strategy
 
@@ -119,7 +133,7 @@ Only fetch what you need. Read SKILL.md for guidance on what warrants a fetch.
 Three new sections added after the existing instructions:
 
 **Reading plan context**
-Read `ARANDANO_PLAN_CONTEXT_PATH` at startup. It lists coder tasks, their agent branches, and PR URLs. Do not fetch all branches upfront — scan `docs/architecture.md` and the plan files first to understand current state and intent.
+Context arrives as `ARANDANO_PLAN_CONTEXT_JSON` (inline string) or `ARANDANO_PLAN_CONTEXT_PATH` (file). The driver handles both — you never need to read the file yourself; the branch/PR list is already in your prompt. Do not fetch all branches upfront — scan `docs/architecture.md` and the plan files first to understand current state and intent.
 
 **Deciding what to fetch**
 Fetch a task's diff when the plan file or task title signals:
@@ -143,6 +157,20 @@ Prefer `gh pr diff` when a PR URL is available — it includes the PR descriptio
 
 **Updated no-op rule:** After reading all plan files and any fetched diffs, if no section of `docs/architecture.md` would mislead a new engineer about how the system works, print `architect: no-op` and exit.
 
+### 6. Remove `ARANDANO_PLAN_MERGE_RANGE`
+
+`plan-context.json` fully supersedes the merge-range approach. Keeping it would leave dead code and a confusing, always-empty env var in every architect container.
+
+**Deletions:**
+
+| Location                                               | What is removed                                                                                                  |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `packages/core/src/orchestrator/orchestrator.ts`       | `gitMergeRange()` helper (the `execFile`-based git shell-out) and `ARANDANO_PLAN_MERGE_RANGE` from `envOverride` |
+| `arandano-worker/lib/src/architect/architectDriver.ts` | `mergeRange` variable and the `git log ${mergeRange}` line in the prompt                                         |
+| `arandano-worker/lib/src/skills/architect/SKILL.md`    | Any reference to merge range or `git log <range>`                                                                |
+
+After this removal the orchestrator has zero git shell-outs, which restores the original design invariant: the orchestrator is a pure TypeScript scheduler with no git dependency.
+
 ## Data flow
 
 ```
@@ -162,11 +190,14 @@ orchestrator collects completed coder tasks with branch from state.json
 writes .arandano/runs/<planSlug>-context.json
         │
         ▼
-dispatches T-architect with ARANDANO_PLAN_CONTEXT_PATH
+dispatches T-architect with:
+  ARANDANO_PLAN_SLUG=smoke
+  ARANDANO_PLAN_CONTEXT_PATH=.arandano/runs/smoke-context.json   ← Docker
+  ARANDANO_PLAN_CONTEXT_JSON={"planSlug":"smoke",...}             ← k8s
         │
         ▼
 architect container
-  └── reads plan-context.json
+  └── driver: parses PLAN_CONTEXT_JSON (or reads PLAN_CONTEXT_PATH)
   └── reads SKILL.md
   └── selectively: gh pr diff / git fetch + git diff
   └── edits docs/architecture.md or prints "architect: no-op"
@@ -191,18 +222,18 @@ architect container
 - `runOne` — missing `result.json` does not throw; task status is still `completed`
 - `runOne` — malformed `result.json` (invalid JSON) does not throw
 - `orchestrator` — `plan-context.json` written before T-architect dispatches; contains only completed coder tasks with branches
-- `orchestrator` — `ARANDANO_PLAN_CONTEXT_PATH` present in T-architect's `envSet`
+- `orchestrator` — `ARANDANO_PLAN_CONTEXT_PATH` present in T-architect's `envSet` as workdir-relative path
+- `orchestrator` — `ARANDANO_PLAN_CONTEXT_JSON` present in T-architect's `envSet` with correct serialised JSON
+- `orchestrator` — `ARANDANO_PLAN_MERGE_RANGE` is NOT present in T-architect's `envSet`
 - `orchestrator` — failed coder tasks excluded from context file
 - `orchestrator` — reviewer tasks excluded from context file
 - `orchestrator` — tasks with no `branch` in state excluded from context file
 
 **`arandano-worker/lib` (vitest):**
 
-- `architectDriver` — valid `ARANDANO_PLAN_CONTEXT_PATH` fixture produces prompt with branch and PR URL lines
-- `architectDriver` — absent `ARANDANO_PLAN_CONTEXT_PATH` produces fallback prompt without crashing
-- `architectDriver` — unreadable context file produces fallback prompt without crashing
-
-## Open questions
-
-- **`ARANDANO_PLAN_CONTEXT_PATH` inside the container:** The path is the host absolute path, which is bind-mounted at the same location. This works for Docker (same path in/out). For a future k8s executor the path handling may need revisiting — the context file would need to be mounted or injected differently.
-- **`ARANDANO_PLAN_MERGE_RANGE` cleanup:** Now that `plan-context.json` supersedes it, `ARANDANO_PLAN_MERGE_RANGE` should be removed in a follow-up once SKILL.md no longer references it. Not in scope here.
+- `architectDriver` — `ARANDANO_PLAN_CONTEXT_JSON` env var produces prompt with branch and PR URL lines
+- `architectDriver` — `ARANDANO_PLAN_CONTEXT_PATH` file fallback produces prompt with branch and PR URL lines
+- `architectDriver` — `ARANDANO_PLAN_CONTEXT_JSON` takes priority over `ARANDANO_PLAN_CONTEXT_PATH` when both set
+- `architectDriver` — absent both env vars produces fallback prompt without crashing
+- `architectDriver` — malformed JSON in `ARANDANO_PLAN_CONTEXT_JSON` produces fallback prompt without crashing
+- `architectDriver` — prompt does NOT contain `git log` (merge range removed)
