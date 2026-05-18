@@ -34,5 +34,5 @@
 
 ## Follow-ups (filled in during execution)
 
-- [ ] [F1 — set ARANDANO_PLAN_SLUG + ARANDANO_PLAN_MERGE_RANGE for T-architect container](phase-2-architect-role/F1-architect-env-vars.md)
-- [ ] [F2 — use plan-scoped or globally-unique task IDs in node-ts-toy e2e plans](phase-2-architect-role/F2-unique-task-ids.md)
+- [x] [F1 — set ARANDANO_PLAN_SLUG + ARANDANO_PLAN_MERGE_RANGE for T-architect container](phase-2-architect-role/F1-architect-env-vars.md)
+- [x] [F2 — use plan-scoped or globally-unique task IDs in node-ts-toy e2e plans](phase-2-architect-role/F2-unique-task-ids.md)
