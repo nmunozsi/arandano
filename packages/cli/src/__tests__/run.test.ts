@@ -42,4 +42,28 @@ describe('arandano run', () => {
     expect(Orchestrator).toHaveBeenCalledWith(expect.objectContaining({ planSlug: 'my-plan' }));
     expect(mockOrchestratorRun).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes --with-architect and --no-architect flags', () => {
+    const flags = (Run as unknown as { flags: Record<string, unknown> }).flags;
+    expect(flags['with-architect']).toBeDefined();
+    expect(flags['no-architect']).toBeDefined();
+  });
+
+  it('errors when both --with-architect and --no-architect are set', async () => {
+    await expect(Run.run(['--plan', 'x', '--with-architect', '--no-architect'])).rejects.toThrow(
+      /mutually exclusive/i,
+    );
+  });
+
+  it('passes withArchitect=true to Orchestrator when --with-architect is set', async () => {
+    vi.mocked(Orchestrator).mockClear();
+    await Run.run(['--plan=p', '--with-architect']);
+    expect(Orchestrator).toHaveBeenCalledWith(expect.objectContaining({ withArchitect: true }));
+  });
+
+  it('passes noArchitect=true to Orchestrator when --no-architect is set', async () => {
+    vi.mocked(Orchestrator).mockClear();
+    await Run.run(['--plan=p', '--no-architect']);
+    expect(Orchestrator).toHaveBeenCalledWith(expect.objectContaining({ noArchitect: true }));
+  });
 });

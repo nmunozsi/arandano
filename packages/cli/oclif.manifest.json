@@ -153,6 +153,18 @@
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
+        },
+        "with-architect": {
+          "description": "force the architect task to run even when disabled in config or in a phase run",
+          "name": "with-architect",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "no-architect": {
+          "description": "suppress the architect task even when enabled in config",
+          "name": "no-architect",
+          "allowNo": false,
+          "type": "boolean"
         }
       },
       "hasDynamicHelp": false,

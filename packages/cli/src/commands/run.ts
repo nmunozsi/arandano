@@ -16,10 +16,21 @@ export default class Run extends Command {
     plan: Flags.string({ description: 'plan slug under .arandano/specs/<spec>/plans/<slug>/' }),
     spec: Flags.string({ description: 'spec name (disambiguates ambiguous plan slugs)' }),
     phase: Flags.string({ description: 'phase slug to run a single phase of a multi-phase plan' }),
+    'with-architect': Flags.boolean({
+      description: 'force the architect task to run even when disabled in config or in a phase run',
+    }),
+    'no-architect': Flags.boolean({
+      description: 'suppress the architect task even when enabled in config',
+    }),
   };
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(Run);
+
+    if (flags['with-architect'] && flags['no-architect']) {
+      throw new Error('--with-architect and --no-architect are mutually exclusive');
+    }
+
     const projectRoot = process.cwd();
     const cfg = yaml.parse(
       await readFile(join(projectRoot, '.arandano', 'config.yaml'), 'utf8'),
@@ -33,6 +44,8 @@ export default class Run extends Command {
         executor,
         ...(flags.spec !== undefined && { specName: flags.spec }),
         ...(flags.phase !== undefined && { phaseSlug: flags.phase }),
+        withArchitect: flags['with-architect'] === true,
+        noArchitect: flags['no-architect'] === true,
       });
       const summary = await o.run();
       this.log(
