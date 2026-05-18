@@ -9,4 +9,9 @@ export const BUNDLED_SKILLS: SkillMeta[] = [
     description:
       'Use whenever creating a Git commit. Every commit subject must start with one of the 16 curated gitmoji shortcodes paired with a Conventional Commits type.',
   },
+  {
+    name: 'architect',
+    description:
+      'Use when assigned the architect role. Updates docs/architecture.md to reflect the just-merged plan with minimal-diff edits.',
+  },
 ];

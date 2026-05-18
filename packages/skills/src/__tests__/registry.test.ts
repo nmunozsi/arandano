@@ -13,4 +13,8 @@ describe('BUNDLED_SKILLS', () => {
   it('every skill has a non-empty description', () => {
     for (const s of BUNDLED_SKILLS) expect(s.description.length).toBeGreaterThan(0);
   });
+
+  it('includes architect', () => {
+    expect(BUNDLED_SKILLS.find((s) => s.name === 'architect')).toBeDefined();
+  });
 });
