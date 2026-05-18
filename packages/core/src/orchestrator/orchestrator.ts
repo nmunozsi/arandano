@@ -1,24 +1,5 @@
-import { execFile } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
-
-async function gitMergeRange(projectRoot: string, defaultBranch: string): Promise<string> {
-  try {
-    const { stdout } = await execFileAsync('git', [
-      '-C',
-      projectRoot,
-      'log',
-      '--format=%H',
-      `${defaultBranch}..HEAD`,
-    ]);
-    return stdout.trim();
-  } catch {
-    return '';
-  }
-}
 import { loadConfig } from '../config/load.js';
 import { loadPlan } from '../tasks/loadPlan.js';
 import { StateStore } from '../state/store.js';
@@ -106,15 +87,32 @@ export class Orchestrator {
       const ready = selectReadyBatch({ tasks: fms, state, maxParallel: slots }).filter(
         (id) => !inFlight.has(id),
       );
-
       for (const id of ready) {
         const taskFilePath = taskFilePaths.get(id);
         let envOverride: Record<string, string> | undefined;
         if (id === 'T-architect') {
-          const mergeRange = await gitMergeRange(projectRoot, cfg.project.default_branch);
+          const currentState = await store.read();
+          const planContextTasks = fms
+            .filter((t) => t.role === 'coder' && currentState.tasks[t.id]?.branch)
+            .map((t) => ({
+              id: t.id,
+              branch: currentState.tasks[t.id]!.branch!,
+              ...(currentState.tasks[t.id]?.pr_url
+                ? { prUrl: currentState.tasks[t.id]!.pr_url }
+                : {}),
+            }));
+          const planContext = {
+            planSlug,
+            defaultBranch: cfg.project.default_branch,
+            tasks: planContextTasks,
+          };
+          const contextRelPath = `.arandano/runs/${planSlug}-context.json`;
+          await mkdir(join(projectRoot, '.arandano', 'runs'), { recursive: true });
+          await writeFile(join(projectRoot, contextRelPath), JSON.stringify(planContext, null, 2));
           envOverride = {
             ARANDANO_PLAN_SLUG: planSlug,
-            ARANDANO_PLAN_MERGE_RANGE: mergeRange,
+            ARANDANO_PLAN_CONTEXT_PATH: contextRelPath,
+            ARANDANO_PLAN_CONTEXT_JSON: JSON.stringify(planContext),
           };
         }
         inFlight.set(
