@@ -39,6 +39,14 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     const v = hostEnv[key];
     if (typeof v === 'string' && v.length > 0) env.push(`${key}=${v}`);
   }
+  // Direct env var injection (no host lookup)
+  for (const [k, v] of Object.entries(task.envSet ?? {})) {
+    env.push(`${k}=${v}`);
+  }
+
+  if (task.mcpServers.length > 0) {
+    env.push(`ARANDANO_MCP_SERVERS=${task.mcpServers.join(',')}`);
+  }
 
   return {
     Image: image,

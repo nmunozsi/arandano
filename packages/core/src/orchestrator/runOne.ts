@@ -9,6 +9,8 @@ export interface RunOneOpts {
   projectRoot: string;
   taskId: string;
   executor: Executor;
+  taskFilePath?: string;
+  envOverride?: Record<string, string>;
 }
 
 export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
@@ -17,7 +19,7 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
   const cfgText = await readFile(join(projectRoot, '.arandano', 'config.yaml'), 'utf8');
   const cfg = loadConfig(cfgText);
 
-  const taskPath = await findTaskMd(projectRoot, taskId);
+  const taskPath = opts.taskFilePath ?? (await findTaskMd(projectRoot, taskId));
   if (!taskPath) throw new Error(`task not found: ${taskId}`);
   const taskMd = parseTaskMd(await readFile(taskPath, 'utf8'), taskPath);
 
@@ -35,10 +37,19 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
     tdd: taskMd.frontmatter.tdd ?? role.tdd ?? 'strict',
     quality: { ...cfg.quality_defaults, ...(taskMd.frontmatter.quality ?? {}) } as never,
     envPass: cfg.executor.docker?.env_pass ?? [],
+    ...(opts.envOverride !== undefined ? { envSet: opts.envOverride } : {}),
     workdir: cfg.executor.docker?.workdir ?? '/workspace',
     timeoutMs: (taskMd.frontmatter.timeout_minutes ?? cfg.batching.timeout_minutes) * 60_000,
     mcpServers: taskMd.frontmatter.mcp ?? [],
   };
+
+  // Host-side gitnexus cache pre-warm — soft-fail.
+  if (taskRun.mcpServers.includes('gitnexus')) {
+    const { ensureGitnexusCacheHost } = await import('../mcp/cacheHost.js');
+    await ensureGitnexusCacheHost(projectRoot, {
+      log: (line) => process.stderr.write(line + '\n'),
+    });
+  }
 
   const store = new StateStore(join(projectRoot, '.arandano', 'state.json'));
   await store.update((state) => {
@@ -52,6 +63,7 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
 
   const handle = await executor.start(taskRun);
   const result = await executor.wait(handle, { timeoutMs: taskRun.timeoutMs });
+
   await store.update((state) => {
     const existing = state.tasks[taskRun.taskId] ?? { retry_count: 0, status: 'running' as const };
     state.tasks[taskRun.taskId] = {
@@ -61,6 +73,23 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
       ...(result.reason !== 'ok' ? { error: result.reason } : {}),
     };
   });
+
+  if (result.reason === 'ok' && result.resultJsonPath) {
+    try {
+      const raw = await readFile(result.resultJsonPath, 'utf8');
+      const r = JSON.parse(raw) as { branch?: unknown; pr_url?: unknown };
+      if (typeof r.branch === 'string' || typeof r.pr_url === 'string') {
+        await store.update((state) => {
+          const t = state.tasks[taskRun.taskId];
+          if (!t) return;
+          if (typeof r.branch === 'string') t.branch = r.branch;
+          if (typeof r.pr_url === 'string') t.pr_url = r.pr_url;
+        });
+      }
+    } catch {
+      // result.json absent or malformed — task still completed, silently skip
+    }
+  }
 
   return result;
 }

@@ -2,7 +2,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', 'packages/templates/stacks/**'],
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      'packages/templates/stacks/**',
+      'packages/templates/commitlint-rules/**',
+      'packages/skills/scripts/**',
+    ],
   },
   ...tseslint.configs.recommendedTypeChecked,
   {
@@ -31,5 +38,9 @@ export default tseslint.config(
   {
     files: ['**/__tests__/**', '**/*.test.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
+  },
+  {
+    files: ['**/*.cjs'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 );

@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { loadConfig } from '../config/load.js';
 import { loadPlan } from '../tasks/loadPlan.js';
@@ -8,6 +8,7 @@ import { runOne } from './runOne.js';
 import type { Executor, ExitResult } from '../types/executor.js';
 import type { TaskFrontmatter } from '../types/task.js';
 import { synthesizeReviewerTask } from '../reviewer/synthesizeReviewerTask.js';
+import { synthesizeArchitectTask, type RunShape } from '../architect/synthesizeArchitectTask.js';
 
 export interface OrchestratorOpts {
   projectRoot: string;
@@ -15,6 +16,8 @@ export interface OrchestratorOpts {
   executor: Executor;
   specName?: string;
   phaseSlug?: string;
+  withArchitect?: boolean;
+  noArchitect?: boolean;
 }
 
 export interface RunSummary {
@@ -45,6 +48,36 @@ export class Orchestrator {
     const fms: TaskFrontmatter[] = tasks.map((t) => t.frontmatter);
     // Map from task id to its file path, used for co-locating synthesized reviewer tasks.
     const taskFilePaths = new Map(tasks.map((t) => [t.frontmatter.id, t.filePath]));
+
+    const runShape: RunShape = this.opts.phaseSlug ? 'phase' : 'plan';
+    const architectTask = synthesizeArchitectTask({
+      tasks: fms,
+      planSlug,
+      enabledInConfig: cfg.roles['architect']?.enabled === true,
+      withArchitect: this.opts.withArchitect === true,
+      noArchitect: this.opts.noArchitect === true,
+      runShape,
+    });
+    let architectPlanRoot: string | null = null;
+    if (architectTask) {
+      fms.push(architectTask);
+      architectPlanRoot = tasks[0] ? dirname(tasks[0].filePath) : join(projectRoot, '.arandano');
+      const archPath = join(architectPlanRoot, 'T-architect-auto.md');
+      const depsLine =
+        architectTask.depends_on && architectTask.depends_on.length > 0
+          ? `depends_on: [${architectTask.depends_on.join(', ')}]\n`
+          : '';
+      const mcpLine =
+        architectTask.mcp && architectTask.mcp.length > 0
+          ? `mcp: [${architectTask.mcp.join(', ')}]\n`
+          : '';
+      await writeFile(
+        archPath,
+        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\ntdd: relaxed\n${depsLine}${mcpLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
+      );
+      taskFilePaths.set('T-architect', archPath);
+    }
+
     validateDag(fms);
 
     const store = new StateStore(join(projectRoot, '.arandano', 'state.json'));
@@ -58,11 +91,45 @@ export class Orchestrator {
       const ready = selectReadyBatch({ tasks: fms, state, maxParallel: slots }).filter(
         (id) => !inFlight.has(id),
       );
-
       for (const id of ready) {
+        const taskFilePath = taskFilePaths.get(id);
+        let envOverride: Record<string, string> | undefined;
+        if (id === 'T-architect') {
+          const currentState = await store.read();
+          // Only coder tasks produce branches; reviewer/architect tasks don't contribute diffs.
+          const planContextTasks = fms
+            .filter((t) => t.role === 'coder' && currentState.tasks[t.id]?.branch)
+            .map((t) => ({
+              id: t.id,
+              branch: currentState.tasks[t.id]!.branch!,
+              ...(currentState.tasks[t.id]?.pr_url
+                ? { prUrl: currentState.tasks[t.id]?.pr_url }
+                : {}),
+            }));
+          const planContext = {
+            planSlug,
+            defaultBranch: cfg.project.default_branch,
+            tasks: planContextTasks,
+          };
+          // Relative to workdir — Docker bind-mount resolves this from the container's CWD.
+          const contextRelPath = `.arandano/runs/${planSlug}-context.json`;
+          await mkdir(join(projectRoot, '.arandano', 'runs'), { recursive: true });
+          await writeFile(join(projectRoot, contextRelPath), JSON.stringify(planContext, null, 2));
+          envOverride = {
+            ARANDANO_PLAN_SLUG: planSlug,
+            ARANDANO_PLAN_CONTEXT_PATH: contextRelPath,
+            ARANDANO_PLAN_CONTEXT_JSON: JSON.stringify(planContext),
+          };
+        }
         inFlight.set(
           id,
-          runOne({ projectRoot, taskId: id, executor }).then((result) => ({ id, result })),
+          runOne({
+            projectRoot,
+            taskId: id,
+            executor,
+            ...(taskFilePath !== undefined ? { taskFilePath } : {}),
+            ...(envOverride !== undefined ? { envOverride } : {}),
+          }).then((result) => ({ id, result })),
         );
       }
 

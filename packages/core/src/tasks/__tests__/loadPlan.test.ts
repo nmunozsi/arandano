@@ -24,6 +24,15 @@ describe('loadPlan', () => {
     expect(tasks.find((t) => t.frontmatter.id === 'T2')?.frontmatter.depends_on).toEqual(['T1']);
   });
 
+  it('loads task files with non-T letter prefixes (e.g. AS1-foo.md)', async () => {
+    const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p2');
+    await mkdir(planDir, { recursive: true });
+    await writeFile(join(planDir, 'AS1-foo.md'), '---\nid: AS1\ntitle: foo\nrole: coder\n---\n');
+    await writeFile(join(planDir, 'AS2-bar.md'), '---\nid: AS2\ntitle: bar\nrole: coder\n---\n');
+    const tasks = await loadPlan({ projectRoot: dir, planSlug: 'p2' });
+    expect(tasks.map((t) => t.frontmatter.id).sort()).toEqual(['AS1', 'AS2']);
+  });
+
   it('ignores non-task files', async () => {
     const planDir = join(dir, '.arandano', 'specs', 'default', 'plans', 'p');
     await mkdir(planDir, { recursive: true });

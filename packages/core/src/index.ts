@@ -11,3 +11,8 @@ export { Orchestrator } from './orchestrator/orchestrator.js';
 export type { OrchestratorOpts, RunSummary } from './orchestrator/orchestrator.js';
 export { loadPlan } from './tasks/loadPlan.js';
 export { synthesizeReviewerTask } from './reviewer/synthesizeReviewerTask.js';
+export {
+  synthesizeArchitectTask,
+  type RunShape,
+  type SynthesizeArchitectOpts,
+} from './architect/synthesizeArchitectTask.js';

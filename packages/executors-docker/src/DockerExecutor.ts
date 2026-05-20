@@ -57,6 +57,10 @@ export class DockerExecutor implements Executor {
       // no remote configured — local-only repo, clone still works
     }
     await this.opts.cloneProject!(this.opts.projectRoot, cloneDir, remoteUrl);
+    // Carry gitignored MCP cache into the clone so the worker can verify it.
+    await cp(join(this.opts.projectRoot, '.gitnexus'), join(cloneDir, '.gitnexus'), {
+      recursive: true,
+    }).catch(() => {});
 
     const spec = buildContainerSpec({
       task,

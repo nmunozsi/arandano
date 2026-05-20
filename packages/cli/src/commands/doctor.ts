@@ -6,11 +6,18 @@ import { join } from 'node:path';
 
 const exec = promisify(execFile);
 
+interface CheckResult {
+  name: string;
+  ok: boolean;
+  detail?: string;
+  advisory?: boolean;
+}
+
 export default class Doctor extends Command {
   static override description = 'Verify Docker, gh, and repo state.';
 
   async run(): Promise<void> {
-    const checks: Array<{ name: string; ok: boolean; detail?: string }> = [];
+    const checks: CheckResult[] = [];
     const root = process.cwd();
 
     checks.push(
@@ -19,6 +26,14 @@ export default class Doctor extends Command {
       ),
     );
     checks.push(await tryCheck('gh authenticated', () => exec('gh', ['auth', 'status'])));
+    checks.push(
+      await tryCheck(
+        'gitnexus available (advisory)',
+        // shell:true required on Windows where npm installs a .cmd wrapper, not an .exe
+        () => exec('gitnexus', ['--version'], { shell: true }),
+        { advisory: true },
+      ),
+    );
     checks.push(
       await tryCheck('config.yaml present', async () => {
         await readFile(join(root, '.arandano', 'config.yaml'), 'utf8');
@@ -32,20 +47,27 @@ export default class Doctor extends Command {
     );
 
     for (const c of checks) {
-      this.log(`${c.ok ? 'ok  ' : 'FAIL'}  ${c.name}${c.detail ? ' — ' + c.detail : ''}`);
+      const tag = c.ok ? 'ok  ' : c.advisory ? 'warn' : 'FAIL';
+      this.log(`${tag}  ${c.name}${c.detail ? ' — ' + c.detail : ''}`);
     }
-    if (checks.some((c) => !c.ok)) process.exit(1);
+    if (checks.some((c) => !c.ok && !c.advisory)) process.exit(1);
   }
 }
 
 async function tryCheck<T>(
   name: string,
   fn: () => Promise<T>,
-): Promise<{ name: string; ok: boolean; detail?: string }> {
+  opts: { advisory?: boolean } = {},
+): Promise<CheckResult> {
   try {
     await fn();
-    return { name, ok: true };
+    return { name, ok: true, ...(opts.advisory ? { advisory: true } : {}) };
   } catch (e) {
-    return { name, ok: false, detail: (e as Error).message };
+    return {
+      name,
+      ok: false,
+      detail: (e as Error).message,
+      ...(opts.advisory ? { advisory: true } : {}),
+    };
   }
 }

@@ -9,7 +9,7 @@ export interface LoadPlanOpts {
   specName?: string;
 }
 
-const TASK_FILE_RE = /^T\d+-.*\.md$/;
+const TASK_FILE_RE = /^[A-Za-z]+\d+-.*\.md$/;
 const PHASE_DIR_RE = /^phase-\d+-/;
 
 export async function loadPlan(opts: LoadPlanOpts): Promise<TaskMd[]> {

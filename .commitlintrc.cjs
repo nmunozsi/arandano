@@ -1,1 +1,7 @@
-module.exports = { extends: ['@commitlint/config-conventional'] };
+'use strict';
+
+const base = require('./packages/templates/commitlint-rules');
+
+module.exports = {
+  ...base,
+};

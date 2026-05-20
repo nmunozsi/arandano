@@ -22,6 +22,7 @@ const RoleConfigSchema = z.object({
   cli: z.string().min(1),
   model: z.string().min(1),
   tdd: z.enum(['strict', 'relaxed']).optional(),
+  enabled: z.boolean().optional(),
 });
 
 const DockerExecutorSchema = z.object({
@@ -86,5 +87,9 @@ export function loadConfig(yamlText: string): ProjectConfig {
       .join('; ');
     throw new Error(`Invalid arandano config: ${issues}`);
   }
-  return result.data as ProjectConfig;
+  const cfg = result.data as ProjectConfig;
+  if (cfg.roles['architect'] && cfg.roles['architect'].enabled === undefined) {
+    cfg.roles['architect'] = { ...cfg.roles['architect'], enabled: true };
+  }
+  return cfg;
 }
