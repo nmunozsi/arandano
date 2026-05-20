@@ -25,5 +25,6 @@ export function synthesizeArchitectTask(opts: SynthesizeArchitectOpts): TaskFron
     title: `Refresh docs/architecture.md after plan ${opts.planSlug}`,
     role: 'architect',
     depends_on: opts.tasks.map((t) => t.id),
+    mcp: ['gitnexus'],
   };
 }

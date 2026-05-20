@@ -104,4 +104,16 @@ describe('synthesizeArchitectTask', () => {
     expect(r?.role).toBe('architect');
     expect(r?.title).toContain('architecture.md');
   });
+
+  it('synthesized task requests the gitnexus MCP server', () => {
+    const r = synthesizeArchitectTask({
+      tasks: [t1, t2],
+      planSlug: 'p',
+      enabledInConfig: true,
+      withArchitect: false,
+      noArchitect: false,
+      runShape: 'plan',
+    });
+    expect(r?.mcp).toEqual(['gitnexus']);
+  });
 });
