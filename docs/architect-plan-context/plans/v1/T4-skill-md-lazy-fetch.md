@@ -14,7 +14,7 @@ No new tests are needed — this is a docs-only change inside the worker image. 
 
 ---
 
-- [ ] **Step 1: Remove the merge-range input line from `lib/src/skills/architect/SKILL.md`**
+- [x] **Step 1: Remove the merge-range input line from `lib/src/skills/architect/SKILL.md`**
 
 In the `## Inputs available to you` section, remove this line:
 
@@ -28,7 +28,7 @@ Replace it with:
 - Per-task coder context: branch names and PR URLs are already in your prompt (supplied by the driver from `ARANDANO_PLAN_CONTEXT_JSON`).
 ```
 
-- [ ] **Step 2: Insert three new sections before `## The template`**
+- [x] **Step 2: Insert three new sections before `## The template`**
 
 After the updated `## Inputs available to you` section and before the `## The template` section, insert:
 
@@ -61,7 +61,7 @@ Run these commands in the container:
 If `gh pr diff` fails, try the git fetch + diff fallback. If that also fails (branch deleted), log a warning and continue without that task's diff.
 ```
 
-- [ ] **Step 3: Update `## When the diff is empty`**
+- [x] **Step 3: Update `## When the diff is empty`**
 
 Replace the current paragraph:
 
@@ -75,7 +75,7 @@ With:
 After reading all plan files and any fetched diffs, if no section of `docs/architecture.md` would mislead a new engineer about how the system works, **do not commit**. Print `architect: no-op` to stdout. The worker's `architect-driver` recognises this and skips PR creation.
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 ```
 grep -n "ARANDANO_PLAN_MERGE_RANGE" lib/src/skills/architect/SKILL.md
@@ -89,7 +89,7 @@ grep -n "Reading plan context\|Deciding what to fetch\|Fetching and diffing\|ARA
 
 Expected: four matching lines.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```
 git add lib/src/skills/architect/SKILL.md
