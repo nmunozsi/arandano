@@ -67,9 +67,13 @@ export class Orchestrator {
         architectTask.depends_on && architectTask.depends_on.length > 0
           ? `depends_on: [${architectTask.depends_on.join(', ')}]\n`
           : '';
+      const mcpLine =
+        architectTask.mcp && architectTask.mcp.length > 0
+          ? `mcp: [${architectTask.mcp.join(', ')}]\n`
+          : '';
       await writeFile(
         archPath,
-        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\ntdd: relaxed\n${depsLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
+        `---\nid: T-architect\ntitle: "${architectTask.title.replace(/"/g, '\\"')}"\nrole: architect\ntdd: relaxed\n${depsLine}${mcpLine}---\nRefresh docs/architecture.md after plan ${planSlug}. Read /opt/arandano/skills/architect/SKILL.md.\n`,
       );
       taskFilePaths.set('T-architect', archPath);
     }

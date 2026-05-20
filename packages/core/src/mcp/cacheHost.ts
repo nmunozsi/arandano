@@ -14,9 +14,12 @@ export interface EnsureOpts {
   log?: (line: string) => void;
 }
 
+// shell:true required on Windows — npm installs a .cmd wrapper, not an .exe
+const EXEC_OPTS = process.platform === 'win32' ? { shell: true as const } : {};
+
 async function gitnexusOnHost(): Promise<boolean> {
   try {
-    await execFileAsync('gitnexus', ['--version']);
+    await execFileAsync('gitnexus', ['--version'], EXEC_OPTS);
     return true;
   } catch {
     return false;
@@ -81,6 +84,7 @@ export async function ensureGitnexusCacheHost(
     await execFileAsync('gitnexus', ['analyze'], {
       cwd: workspaceRoot,
       timeout: ANALYZE_TIMEOUT_MS,
+      ...EXEC_OPTS,
     });
     await writeStamp(workspaceRoot, head);
     log(`gitnexus: rebuilt (${head.slice(0, 8)})`);
