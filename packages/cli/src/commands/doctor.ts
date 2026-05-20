@@ -27,9 +27,12 @@ export default class Doctor extends Command {
     );
     checks.push(await tryCheck('gh authenticated', () => exec('gh', ['auth', 'status'])));
     checks.push(
-      await tryCheck('gitnexus available (advisory)', () => exec('gitnexus', ['--version']), {
-        advisory: true,
-      }),
+      await tryCheck(
+        'gitnexus available (advisory)',
+        // shell:true required on Windows where npm installs a .cmd wrapper, not an .exe
+        () => exec('gitnexus', ['--version'], { shell: true }),
+        { advisory: true },
+      ),
     );
     checks.push(
       await tryCheck('config.yaml present', async () => {
