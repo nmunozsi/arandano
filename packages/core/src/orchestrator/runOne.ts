@@ -43,6 +43,14 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
     mcpServers: taskMd.frontmatter.mcp ?? [],
   };
 
+  // Host-side gitnexus cache pre-warm — soft-fail.
+  if (taskRun.mcpServers.includes('gitnexus')) {
+    const { ensureGitnexusCacheHost } = await import('../mcp/cacheHost.js');
+    await ensureGitnexusCacheHost(projectRoot, {
+      log: (line) => process.stderr.write(line + '\n'),
+    });
+  }
+
   const store = new StateStore(join(projectRoot, '.arandano', 'state.json'));
   await store.update((state) => {
     const existing = state.tasks[taskRun.taskId];
