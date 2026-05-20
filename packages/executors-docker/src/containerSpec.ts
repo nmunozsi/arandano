@@ -44,6 +44,10 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     env.push(`${k}=${v}`);
   }
 
+  if (task.mcpServers.length > 0) {
+    env.push(`ARANDANO_MCP_SERVERS=${task.mcpServers.join(',')}`);
+  }
+
   return {
     Image: image,
     WorkingDir: task.workdir,

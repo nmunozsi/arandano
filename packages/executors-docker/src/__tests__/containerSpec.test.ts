@@ -99,3 +99,38 @@ describe('buildContainerSpec', () => {
     );
   });
 });
+
+describe('buildContainerSpec — MCP servers forwarding', () => {
+  it('emits ARANDANO_MCP_SERVERS=<single> when one server requested', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ mcpServers: ['gitnexus'] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_MCP_SERVERS=gitnexus');
+  });
+
+  it('emits ARANDANO_MCP_SERVERS=<csv> when multiple servers requested', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ mcpServers: ['gitnexus', 'foo'] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_MCP_SERVERS=gitnexus,foo');
+  });
+
+  it('omits ARANDANO_MCP_SERVERS entirely when no servers requested', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ mcpServers: [] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env?.find((e) => e.startsWith('ARANDANO_MCP_SERVERS='))).toBeUndefined();
+  });
+});
