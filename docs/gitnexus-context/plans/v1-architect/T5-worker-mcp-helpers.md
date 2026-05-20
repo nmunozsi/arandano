@@ -39,7 +39,7 @@ All three are pure utilities — no env access, no orchestration. Architect driv
 
 ---
 
-- [ ] **Step 1 (spike): Determine the registry.json schema**
+- [x] **Step 1 (spike): Determine the registry.json schema**
 
 Reverse-engineering the registry shape is the only undocumented piece. Run this once locally, outside any task:
 
@@ -61,7 +61,7 @@ Record the resulting JSON shape. It will likely look something like:
 
 The exact keys depend on the GitNexus version. Use the shape you observe in Step 3 below. **If the registry is empty or absent after analyze, the registry-poke isn't needed** — `gitnexus mcp` must already discover via cwd. In that case, replace `writeRegistryEntry` with a no-op (return immediately) and document the finding inline in `registry.ts`.
 
-- [ ] **Step 2: Create `lib/src/mcp/cache.ts`**
+- [x] **Step 2: Create `lib/src/mcp/cache.ts`**
 
 ```typescript
 import { existsSync } from 'node:fs';
@@ -106,7 +106,7 @@ export async function verifyGitnexusCache(workspaceRoot: string): Promise<CacheR
 }
 ```
 
-- [ ] **Step 3: Create `lib/src/mcp/registry.ts`**
+- [x] **Step 3: Create `lib/src/mcp/registry.ts`**
 
 Use the schema you observed in Step 1. The skeleton below assumes the `{ repos: [{ path, name, indexed_at }] }` shape — adapt as needed:
 
@@ -178,7 +178,7 @@ export async function writeRegistryEntry(_workspaceRoot: string): Promise<void> 
 }
 ```
 
-- [ ] **Step 4: Create `lib/src/mcp/config.ts`**
+- [x] **Step 4: Create `lib/src/mcp/config.ts`**
 
 ```typescript
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -212,7 +212,7 @@ export async function writeMcpConfig(workspaceRoot: string, servers: string[]): 
 }
 ```
 
-- [ ] **Step 5: Create `lib/src/mcp/__tests__/cache.test.ts`**
+- [x] **Step 5: Create `lib/src/mcp/__tests__/cache.test.ts`**
 
 ```typescript
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
@@ -297,7 +297,7 @@ describe('verifyGitnexusCache', () => {
 });
 ```
 
-- [ ] **Step 6: Create `lib/src/mcp/__tests__/registry.test.ts`**
+- [x] **Step 6: Create `lib/src/mcp/__tests__/registry.test.ts`**
 
 ```typescript
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
@@ -357,7 +357,7 @@ describe('writeRegistryEntry', () => {
 
 If you took the no-op route from Step 3 (spike confirmed registry isn't needed), replace this entire file with a single skipped placeholder test and note the reason inline.
 
-- [ ] **Step 7: Create `lib/src/mcp/__tests__/config.test.ts`**
+- [x] **Step 7: Create `lib/src/mcp/__tests__/config.test.ts`**
 
 ```typescript
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
@@ -400,7 +400,7 @@ describe('writeMcpConfig', () => {
 });
 ```
 
-- [ ] **Step 8: Run all new tests — expect every one to pass**
+- [x] **Step 8: Run all new tests — expect every one to pass**
 
 ```
 cd lib && npm test -- --reporter=verbose --testNamePattern="verifyGitnexusCache|writeRegistryEntry|writeMcpConfig"
@@ -408,7 +408,7 @@ cd lib && npm test -- --reporter=verbose --testNamePattern="verifyGitnexusCache|
 
 Expected: 6 (cache) + 3 (registry) + 3 (config) = 12 passed (or 6 + 1 skipped + 3 = 10 if you took the no-op registry route).
 
-- [ ] **Step 9: Run the full worker test suite — expect no regressions**
+- [x] **Step 9: Run the full worker test suite — expect no regressions**
 
 ```
 cd lib && npm test
@@ -416,7 +416,7 @@ cd lib && npm test
 
 Expected: all tests pass.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker

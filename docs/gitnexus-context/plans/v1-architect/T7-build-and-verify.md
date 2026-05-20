@@ -38,7 +38,7 @@ Per project rules: **never `docker push` manually** — the GitHub Actions workf
 
 ---
 
-- [ ] **Step 1: Install pinned gitnexus on the host**
+- [x] **Step 1: Install pinned gitnexus on the host**
 
 ```
 # Match the version pinned in packages/core/src/mcp/cacheHost.ts and arandano-worker/Dockerfile.
@@ -48,7 +48,7 @@ gitnexus --version
 
 Expected: prints `<PINNED_VERSION>`. If npm resolved to a different version, force the install to fix it before proceeding.
 
-- [ ] **Step 2: Verify `arandano doctor` reports gitnexus as ok**
+- [x] **Step 2: Verify `arandano doctor` reports gitnexus as ok**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy
@@ -71,7 +71,7 @@ Rename-Item "$gn.hidden" $gn
 
 If `arandano doctor` exits non-zero in the "advisory missing" run, the `advisory: true` flag isn't reaching the exit logic — fix in T3 and re-run.
 
-- [ ] **Step 3: Add gitignore entries in node-ts-toy**
+- [x] **Step 3: Add gitignore entries in node-ts-toy**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy
@@ -98,7 +98,7 @@ git commit -m ":wrench: chore: ignore .gitnexus/ and .claude/ produced by worker
 git push
 ```
 
-- [ ] **Step 4: Update arandano README with the host prerequisite**
+- [x] **Step 4: Update arandano README with the host prerequisite**
 
 Add (or extend) a "Prerequisites" section in `C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\README.md`. The new bullet describes GitNexus as an optional recommended dependency, includes the pinned install command, and notes that `arandano doctor` will warn when it's missing.
 
@@ -114,14 +114,14 @@ git add README.md
 git commit -m ":memo: docs: document optional gitnexus host install for architect graph context"
 ```
 
-- [ ] **Step 5: Push the worker commits to trigger the GHCR release**
+- [x] **Step 5: Push the worker commits to trigger the GHCR release**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker
 git push
 ```
 
-- [ ] **Step 6: Watch the release workflow**
+- [x] **Step 6: Watch the release workflow**
 
 ```
 gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 3
@@ -130,7 +130,7 @@ gh run watch --repo nmunozsi/arandano-worker
 
 Expected: build succeeds; image published to `ghcr.io/nmunozsi/arandano-worker:latest`. Confirm the build log shows the pinned `gitnexus --version` (Dockerfile sanity step).
 
-- [ ] **Step 7: Pull the new image and confirm in-container**
+- [x] **Step 7: Pull the new image and confirm in-container**
 
 ```
 docker pull ghcr.io/nmunozsi/arandano-worker:latest
@@ -139,7 +139,7 @@ docker run --rm --user 1001:1001 ghcr.io/nmunozsi/arandano-worker:latest gitnexu
 
 Expected: prints `<PINNED_VERSION>` matching the host install from Step 1.
 
-- [ ] **Step 8: First smoke run (expect orchestrator "rebuilt", worker "cache-hit")**
+- [x] **Step 8: First smoke run (expect orchestrator "rebuilt", worker "cache-hit")**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy
@@ -165,7 +165,7 @@ Required env vars (per CLAUDE.md): `ANTHROPIC_API_KEY`, `GH_TOKEN` (with `repo` 
 - Worker says `gitnexus: cache-hit` but Claude makes no MCP tool calls: the registry-poke or `--mcp-config` path isn't connecting. Inspect `.claude/mcp.json` (should not be cleaned up); inspect `~/.gitnexus/registry.json` if you used the non-no-op registry path; look at the container's stdout for MCP connection errors.
 - Orchestrator says `gitnexus: failed`: the host's `gitnexus analyze` errored. Run it manually in the workspace (`cd node-ts-toy && gitnexus analyze`) to see the actual error. Most likely cause: an unsupported language file in the repo (shouldn't happen with node-ts-toy's TS-only contents).
 
-- [ ] **Step 9: Second smoke run (expect "cache-hit" twice)**
+- [x] **Step 9: Second smoke run (expect "cache-hit" twice)**
 
 Without deleting `.gitnexus/`:
 
@@ -180,7 +180,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 This confirms the HEAD-stamp short-circuit works on both sides.
 
-- [ ] **Step 10: Degraded-path smoke (host gitnexus missing)**
+- [x] **Step 10: Degraded-path smoke (host gitnexus missing)**
 
 Temporarily rename the host gitnexus binary (same `Rename-Item` from Step 2), then:
 
@@ -197,7 +197,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Restore the host gitnexus binary when done.
 
-- [ ] **Step 11: Check off the plan files and commit**
+- [x] **Step 11: Check off the plan files and commit**
 
 Update `docs/gitnexus-context/plans/v1-architect/plan.md` — flip every task checkbox to `[x]`. Update each `T*.md` similarly. Commit in the monorepo:
 
@@ -207,13 +207,13 @@ git add docs/gitnexus-context/
 git commit -m ":memo: docs(plans): mark gitnexus-context v1 complete"
 ```
 
-- [ ] **Step 12: Open the PR(s)**
+- [x] **Step 12: Open the PR(s)**
 
 - **arandano-worker:** if you used a feature branch (instead of pushing direct to `main`), open the PR now. Otherwise the workflow has already shipped the image.
 - **arandano:** push the current branch and open a PR titled `:sparkles: feat: gitnexus MCP context for architect (v1)`. Reference this plan in the body. The README + plan + monorepo source changes ride together.
 - `arandano-examples/node-ts-toy`: the gitignore commit can land directly on its `main` branch (single-user example repo).
 
-- [ ] **Step 13: (Optional) Open follow-up issues**
+- [x] **Step 13: (Optional) Open follow-up issues**
 
 Track anything the smoke run surfaced. Out-of-scope candidates already named in the spec:
 

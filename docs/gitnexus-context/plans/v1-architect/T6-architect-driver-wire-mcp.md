@@ -37,7 +37,7 @@ The flag is plumbed through a new optional `mcpConfigPath?: string` on `InvokeCl
 
 ---
 
-- [ ] **Step 1: Inspect `invokeClaudeCode.ts` to find `InvokeCliOpts`**
+- [x] **Step 1: Inspect `invokeClaudeCode.ts` to find `InvokeCliOpts`**
 
 ```
 cat lib/src/invokeClaudeCode.ts
@@ -45,7 +45,7 @@ cat lib/src/invokeClaudeCode.ts
 
 Locate the `InvokeCliOpts` interface (or closest equivalent) — note the existing fields.
 
-- [ ] **Step 2: Add `mcpConfigPath?` to `InvokeCliOpts` and append the flag when set**
+- [x] **Step 2: Add `mcpConfigPath?` to `InvokeCliOpts` and append the flag when set**
 
 Edit `lib/src/invokeClaudeCode.ts`. Add the optional field:
 
@@ -70,7 +70,7 @@ const finalArgs = opts.mcpConfigPath
 
 Use `finalArgs` in place of `opts.args` in the spawn invocation. The key is that `--mcp-config <path>` appears in argv exactly when `mcpConfigPath` is set.
 
-- [ ] **Step 3: Add failing tests to `architectDriver.test.ts`**
+- [x] **Step 3: Add failing tests to `architectDriver.test.ts`**
 
 Append a new `describe` block (do NOT touch the existing `resolvePlanContext` / `buildArchitectPrompt` / `no-op detection` blocks from architect-plan-context v1):
 
@@ -159,7 +159,7 @@ describe('architectMain — MCP wiring', () => {
 
 **On the `// arrange + call architectMain` ellipses:** the existing `architectDriver.test.ts` (post architect-plan-context v1) has a working integration-style test for `architectMain` (the no-op detection block). Copy its setup verbatim — mocking `git`, `createBranch`, `runShell`, `writeJournal`, `writeResult`, and the env vars `ARANDANO_TASK_ID`, `ARANDANO_RUN_FOLDER`, `ARANDANO_CLI`, `ARANDANO_MODEL`. The new assertions only differ in what they check; the harness is identical.
 
-- [ ] **Step 4: Run the new tests to confirm they fail**
+- [x] **Step 4: Run the new tests to confirm they fail**
 
 ```
 cd lib && npm test -- --reporter=verbose --testNamePattern="architectMain — MCP wiring"
@@ -167,7 +167,7 @@ cd lib && npm test -- --reporter=verbose --testNamePattern="architectMain — MC
 
 Expected: 4 fail — `mcpConfigPath` is never set today.
 
-- [ ] **Step 5: Wire the helpers into `architectDriver.ts`**
+- [x] **Step 5: Wire the helpers into `architectDriver.ts`**
 
 In `architectDriver.ts`, add imports at the top:
 
@@ -226,7 +226,7 @@ const cliRun = await invokeCli({
 
 The `...(cond ? { x } : {})` pattern keeps the option absent when undefined — preserves existing tests that assert `mcpConfigPath` is absent.
 
-- [ ] **Step 6: Run the new tests — expect all to pass**
+- [x] **Step 6: Run the new tests — expect all to pass**
 
 ```
 cd lib && npm test -- --reporter=verbose --testNamePattern="architectMain — MCP wiring"
@@ -234,7 +234,7 @@ cd lib && npm test -- --reporter=verbose --testNamePattern="architectMain — MC
 
 Expected: `4 passed`.
 
-- [ ] **Step 7: Run the full worker test suite — expect no regressions**
+- [x] **Step 7: Run the full worker test suite — expect no regressions**
 
 ```
 cd lib && npm test
@@ -242,7 +242,7 @@ cd lib && npm test
 
 Expected: all tests pass — including the architect-plan-context v1 tests for `resolvePlanContext`, `buildArchitectPrompt`, and `no-op detection`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker

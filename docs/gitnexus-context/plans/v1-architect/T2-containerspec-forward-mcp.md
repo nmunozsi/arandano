@@ -29,7 +29,7 @@
 
 ---
 
-- [ ] **Step 1: Add three failing tests in `containerSpec.test.ts`**
+- [x] **Step 1: Add three failing tests in `containerSpec.test.ts`**
 
 Append this `describe` block at the bottom of the file (after the existing `describe('buildContainerSpec', () => { ... })`):
 
@@ -70,7 +70,7 @@ describe('buildContainerSpec — MCP servers forwarding', () => {
 });
 ```
 
-- [ ] **Step 2: Run the new tests to confirm they fail**
+- [x] **Step 2: Run the new tests to confirm they fail**
 
 ```
 npm test --workspace packages/executors-docker -- --reporter=verbose --testNamePattern="MCP servers forwarding"
@@ -78,7 +78,7 @@ npm test --workspace packages/executors-docker -- --reporter=verbose --testNameP
 
 Expected: 2 fail (the omission test will pass coincidentally; the two emission tests fail because the env var is missing).
 
-- [ ] **Step 3: Add the forwarding logic in `containerSpec.ts`**
+- [x] **Step 3: Add the forwarding logic in `containerSpec.ts`**
 
 In `buildContainerSpec`, immediately before the `return` statement (i.e., after the existing `for (const [k, v] of Object.entries(task.envSet ?? {}))` loop), add:
 
@@ -117,7 +117,7 @@ For reference, the resulting tail of the function (from the `envPass` loop onwar
 }
 ```
 
-- [ ] **Step 4: Run the new tests — expect all to pass**
+- [x] **Step 4: Run the new tests — expect all to pass**
 
 ```
 npm test --workspace packages/executors-docker -- --reporter=verbose --testNamePattern="MCP servers forwarding"
@@ -125,7 +125,7 @@ npm test --workspace packages/executors-docker -- --reporter=verbose --testNameP
 
 Expected: `3 passed`.
 
-- [ ] **Step 5: Run the full executors-docker suite — expect no regressions**
+- [x] **Step 5: Run the full executors-docker suite — expect no regressions**
 
 ```
 npm test --workspace packages/executors-docker
@@ -133,7 +133,7 @@ npm test --workspace packages/executors-docker
 
 Expected: all tests pass. The existing `baseTask` fixture sets `mcpServers: []`, so prior tests still match (the env var is absent, exactly as before).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add packages/executors-docker/src/containerSpec.ts packages/executors-docker/src/__tests__/containerSpec.test.ts

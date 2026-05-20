@@ -28,13 +28,13 @@
 
 ## Tasks
 
-- [ ] [T1 — Synthesized architect task carries `mcp: ['gitnexus']`](T1-synthesize-architect-mcp.md)
-- [ ] [T2 — containerSpec forwards `mcpServers` as `ARANDANO_MCP_SERVERS` env var](T2-containerspec-forward-mcp.md)
-- [ ] [T3 — Orchestrator host-side cache pre-warm + `arandano doctor` advisory check](T3-orchestrator-prewarm-and-doctor.md)
-- [ ] [T4 — Worker Dockerfile installs gitnexus CLI (pinned version)](T4-worker-dockerfile-gitnexus.md)
-- [ ] [T5 — Worker MCP helpers module (verify + registry + config)](T5-worker-mcp-helpers.md)
-- [ ] [T6 — Architect driver wires MCP into invokeCli](T6-architect-driver-wire-mcp.md)
-- [ ] [T7 — Build worker, push to GHCR, manual smoke verification](T7-build-and-verify.md)
+- [x] [T1 — Synthesized architect task carries `mcp: ['gitnexus']`](T1-synthesize-architect-mcp.md)
+- [x] [T2 — containerSpec forwards `mcpServers` as `ARANDANO_MCP_SERVERS` env var](T2-containerspec-forward-mcp.md)
+- [x] [T3 — Orchestrator host-side cache pre-warm + `arandano doctor` advisory check](T3-orchestrator-prewarm-and-doctor.md)
+- [x] [T4 — Worker Dockerfile installs gitnexus CLI (pinned version)](T4-worker-dockerfile-gitnexus.md)
+- [x] [T5 — Worker MCP helpers module (verify + registry + config)](T5-worker-mcp-helpers.md)
+- [x] [T6 — Architect driver wires MCP into invokeCli](T6-architect-driver-wire-mcp.md)
+- [x] [T7 — Build worker, push to GHCR, manual smoke verification](T7-build-and-verify.md)
 
 ## Cross-task invariants
 
