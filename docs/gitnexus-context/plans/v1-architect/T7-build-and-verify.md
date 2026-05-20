@@ -100,19 +100,13 @@ git push
 
 - [ ] **Step 4: Update arandano README with the host prerequisite**
 
-In `C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\README.md`, add (or extend) a "Prerequisites" section with:
+Add (or extend) a "Prerequisites" section in `C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\README.md`. The new bullet describes GitNexus as an optional recommended dependency, includes the pinned install command, and notes that `arandano doctor` will warn when it's missing.
 
-```markdown
-- **Optional (recommended): GitNexus** — enables in-container code-graph context for the architect role.
-```
+Suggested content (adapt to match the README's existing tone):
 
-npm install -g gitnexus@<PINNED_VERSION>
+> **Optional (recommended): GitNexus** — enables in-container code-graph context for the architect role. Install with `npm install -g gitnexus@<PINNED_VERSION>` (substituting the version pinned in `packages/core/src/mcp/cacheHost.ts`). Without it, `arandano run` still works, but the architect runs without graph context and `arandano doctor` will warn you.
 
-```
-Without it, `arandano run` works but the architect runs without graph context. `arandano doctor` will warn you.
-```
-
-Commit (locally; will push as part of Step 7):
+Commit (locally; will push as part of Step 12):
 
 ```
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano
