@@ -21,7 +21,7 @@ afterEach(async () => {
 const mockExec = (
   outcomes: Array<{ matchCmd: string; matchArgs?: string[]; err?: Error; stdout?: string }>,
 ): void => {
-  vi.mocked(execFileAsync).mockImplementation((cmd: string, args?: readonly string[]) => {
+  vi.mocked(execFileAsync).mockImplementation(((cmd: string, args?: readonly string[] | null) => {
     const a = Array.isArray(args) ? (args as string[]) : [];
     const m = outcomes.find(
       (o) =>
@@ -32,7 +32,7 @@ const mockExec = (
     if (!m) return Promise.reject(new Error(`unmatched execFileAsync: ${cmd} ${a.join(' ')}`));
     if (m.err) return Promise.reject(m.err);
     return Promise.resolve({ stdout: m.stdout ?? '', stderr: '' });
-  });
+  }) as never);
 };
 
 describe('ensureGitnexusCacheHost', () => {
