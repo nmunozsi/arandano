@@ -16,3 +16,5 @@ export {
   type RunShape,
   type SynthesizeArchitectOpts,
 } from './architect/synthesizeArchitectTask.js';
+export { PerfRecorder, readTimingsJson } from './perf.js';
+export type { PhaseRecord, TimingsFile } from './perf.js';
