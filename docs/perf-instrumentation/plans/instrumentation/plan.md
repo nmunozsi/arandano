@@ -27,7 +27,7 @@
 
 **Tech Stack:** TypeScript (ESM, node22), oclif 4, vitest, dockerode. No new runtime dependencies.
 
-**Reference spec:** `docs/superpowers/specs/2026-05-14-phase-3-performance-design.md`.
+**Reference spec:** `docs/perf-instrumentation/spec.md`.
 
 **Scope deferrals (deliberate):**
 
