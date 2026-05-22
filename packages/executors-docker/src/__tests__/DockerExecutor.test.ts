@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { DockerExecutor } from '../DockerExecutor.js';
 import type { TaskRun } from '@arandano/core';
 
@@ -40,6 +43,18 @@ const task: TaskRun = {
   mcpServers: [],
 };
 
+let projectRoot: string;
+
+beforeEach(async () => {
+  projectRoot = await mkdtemp(join(tmpdir(), 'arandano-executor-test-'));
+  // Ensure .arandano/runs exists so cp in wait() doesn't fail unexpectedly
+  await mkdir(join(projectRoot, '.arandano', 'runs'), { recursive: true });
+});
+
+afterEach(async () => {
+  await rm(projectRoot, { recursive: true, force: true });
+});
+
 describe('DockerExecutor', () => {
   it('starts a container and returns a handle', async () => {
     const c = fakeContainer();
@@ -49,7 +64,7 @@ describe('DockerExecutor', () => {
     };
     const exec = new DockerExecutor({
       image: 'x',
-      projectRoot: '/r',
+      projectRoot,
       client: client as never,
       hostEnv: {},
       now: () => new Date('2026-05-08T19:30:00Z'),
@@ -68,7 +83,7 @@ describe('DockerExecutor', () => {
     };
     const exec = new DockerExecutor({
       image: 'x',
-      projectRoot: '/r',
+      projectRoot,
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
@@ -90,7 +105,7 @@ describe('DockerExecutor', () => {
     };
     const exec = new DockerExecutor({
       image: 'x',
-      projectRoot: '/r',
+      projectRoot,
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
@@ -110,7 +125,7 @@ describe('DockerExecutor', () => {
     };
     const exec = new DockerExecutor({
       image: 'x',
-      projectRoot: '/r',
+      projectRoot,
       client: client as never,
       hostEnv: {},
       now: () => new Date(),
