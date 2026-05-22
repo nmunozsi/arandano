@@ -119,8 +119,7 @@ export class DockerExecutor implements Executor {
       : null;
     const stopWait = entry.perf.start('wait');
     try {
-      const { StatusCode } = await entry.container.wait();
-      stopWait();
+      const { StatusCode } = await entry.container.wait().finally(() => stopWait());
 
       // Copy the run folder from the task clone back to the main project directory
       // so the orchestrator and arandano status can find result.json / journal.md.
@@ -185,7 +184,7 @@ export class DockerExecutor implements Executor {
       task_id: opts.taskId,
       stack: workerTimings?.stack ?? 'unknown',
       image_sha: this.opts.image,
-      total_ms: opts.hostPerf.totalMs() + (workerTimings?.total_ms ?? 0),
+      total_ms: opts.hostPerf.totalMs(),
       host_gitnexus_prewarm_ms: 0, // measured in runOne.ts, not here
       host_pull_ms: host['pull'] ?? 0,
       host_clone_ms: host['clone'] ?? 0,
@@ -198,7 +197,7 @@ export class DockerExecutor implements Executor {
 
     // Rewrite the merged timings.json on disk with host data added.
     if (workerTimings) {
-      const merged = { ...workerTimings, host, total_ms: row.total_ms };
+      const merged = { ...workerTimings, host, total_ms: opts.hostPerf.totalMs() };
       await writeFile(timingsPath, JSON.stringify(merged, null, 2), 'utf8');
     }
 
