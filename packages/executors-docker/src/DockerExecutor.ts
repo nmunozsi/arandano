@@ -175,6 +175,12 @@ export class DockerExecutor implements Executor {
     const host = opts.hostPerf.asObject();
     const worker = workerTimings?.worker ?? {};
 
+    if (workerTimings?.cli_budget_exceeded) {
+      console.warn(
+        `[arandano] task ${opts.taskId}: cli_budget_ms exceeded (worker_cli_ms=${workerTimings.worker?.['cli'] ?? '?'}ms)`,
+      );
+    }
+
     const workerGatesMs = Object.entries(worker)
       .filter(([k]) => k.startsWith('gate.'))
       .reduce((a, [, v]) => a + v, 0);

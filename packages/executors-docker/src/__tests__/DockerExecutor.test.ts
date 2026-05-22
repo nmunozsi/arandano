@@ -222,6 +222,96 @@ describe('DockerExecutor', () => {
     expect(lines[1]).toMatch(/,0,0$/);
   });
 
+  it('logs a console.warn when timings.json has cli_budget_exceeded: true', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const c = fakeContainer();
+      const client = {
+        pull: vi.fn(() => Promise.resolve()),
+        createContainer: vi.fn(() => Promise.resolve(c)),
+      };
+      const fixedNow = new Date('2026-05-22T12:00:00Z');
+      const { runFolder } = await import('@arandano/core');
+      const folder = runFolder({ taskId: task.taskId, date: fixedNow });
+
+      const cloneProject = async (_src: string, dst: string) => {
+        const runDir = join(dst, '.arandano', 'runs', folder);
+        await mkdir(runDir, { recursive: true });
+        const timings = {
+          task_id: task.taskId,
+          total_ms: 200000,
+          stack: 'node-ts',
+          worker: { cli: 180000, install: 10000 },
+          cli_tool_calls: 10,
+          cli_commits: 1,
+          cli_budget_exceeded: true,
+        };
+        await writeFile(join(runDir, 'timings.json'), JSON.stringify(timings, null, 2), 'utf8');
+      };
+
+      const exec = new DockerExecutor({
+        image: 'sha256:budgettest',
+        projectRoot,
+        client: client as never,
+        hostEnv: {},
+        now: () => fixedNow,
+        cloneProject,
+      });
+
+      const h = await exec.start(task);
+      await exec.wait(h);
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/cli_budget_ms exceeded/));
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('does not log a console.warn when timings.json has cli_budget_exceeded: false', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const c = fakeContainer();
+      const client = {
+        pull: vi.fn(() => Promise.resolve()),
+        createContainer: vi.fn(() => Promise.resolve(c)),
+      };
+      const fixedNow = new Date('2026-05-22T13:00:00Z');
+      const { runFolder } = await import('@arandano/core');
+      const folder = runFolder({ taskId: task.taskId, date: fixedNow });
+
+      const cloneProject = async (_src: string, dst: string) => {
+        const runDir = join(dst, '.arandano', 'runs', folder);
+        await mkdir(runDir, { recursive: true });
+        const timings = {
+          task_id: task.taskId,
+          total_ms: 50000,
+          stack: 'node-ts',
+          worker: { cli: 30000 },
+          cli_tool_calls: 5,
+          cli_commits: 1,
+          cli_budget_exceeded: false,
+        };
+        await writeFile(join(runDir, 'timings.json'), JSON.stringify(timings, null, 2), 'utf8');
+      };
+
+      const exec = new DockerExecutor({
+        image: 'sha256:budgetok',
+        projectRoot,
+        client: client as never,
+        hostEnv: {},
+        now: () => fixedNow,
+        cloneProject,
+      });
+
+      const h = await exec.start(task);
+      await exec.wait(h);
+
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringMatching(/cli_budget_ms exceeded/));
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it('reads cli_tool_calls=42 cli_commits=3 from timings.json when present in clone', async () => {
     const c = fakeContainer();
     const client = {

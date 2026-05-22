@@ -52,6 +52,10 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     env.push(`ARANDANO_INJECT_CONTEXT=${task.injectContext.join(':')}`);
   }
 
+  if (task.cliBudgetMs !== undefined) {
+    env.push(`ARANDANO_CLI_BUDGET_MS=${task.cliBudgetMs}`);
+  }
+
   return {
     Image: image,
     WorkingDir: task.workdir,

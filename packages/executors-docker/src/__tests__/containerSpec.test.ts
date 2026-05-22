@@ -159,6 +159,30 @@ describe('buildContainerSpec — inject_context forwarding', () => {
   });
 });
 
+describe('buildContainerSpec — cli_budget_ms forwarding', () => {
+  it('emits ARANDANO_CLI_BUDGET_MS=<ms> when cliBudgetMs is set', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ cliBudgetMs: 60000 }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_CLI_BUDGET_MS=60000');
+  });
+
+  it('omits ARANDANO_CLI_BUDGET_MS entirely when cliBudgetMs is undefined', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ cliBudgetMs: undefined }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env?.find((e) => e.startsWith('ARANDANO_CLI_BUDGET_MS='))).toBeUndefined();
+  });
+});
+
 describe('buildContainerSpec — MCP servers forwarding', () => {
   it('emits ARANDANO_MCP_SERVERS=<single> when one server requested', () => {
     const spec = buildContainerSpec({

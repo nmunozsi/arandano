@@ -44,6 +44,9 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
     ...(taskMd.frontmatter.inject_context !== undefined
       ? { injectContext: taskMd.frontmatter.inject_context }
       : {}),
+    ...(taskMd.frontmatter.cli_budget_ms !== undefined
+      ? { cliBudgetMs: taskMd.frontmatter.cli_budget_ms }
+      : {}),
   };
 
   // Host-side gitnexus cache pre-warm — soft-fail.

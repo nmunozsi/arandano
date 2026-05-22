@@ -16,6 +16,7 @@ export interface TaskRun {
   timeoutMs: number;
   mcpServers: string[];
   injectContext?: string[]; // paths to inject (relative to workdir)
+  cliBudgetMs?: number; // advisory cli time budget; worker warns if exceeded
 }
 
 export type ExitReason =
