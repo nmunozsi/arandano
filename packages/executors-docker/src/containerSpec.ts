@@ -35,6 +35,8 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     `ARANDANO_CONTEXT_PATHS=${task.contextPaths.join(',')}`,
   ];
 
+  env.push('NPM_CONFIG_CACHE=/tmp/npm-cache');
+
   for (const key of task.envPass) {
     const v = hostEnv[key];
     if (typeof v === 'string' && v.length > 0) env.push(`${key}=${v}`);
@@ -62,7 +64,7 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     User: '1001:1001',
     Env: env,
     HostConfig: {
-      Binds: [`${projectRoot}:${task.workdir}`, 'arandano-npm-cache:/home/worker/.npm'],
+      Binds: [`${projectRoot}:${task.workdir}`, 'arandano-npm-cache:/tmp/npm-cache'],
       AutoRemove: false,
     },
   };

@@ -331,43 +331,6 @@
       "isESM": true,
       "relativePath": ["dist", "commands", "issue", "open.js"]
     },
-    "memory:promote": {
-      "aliases": [],
-      "args": {
-        "runFolder": {
-          "description": "e.g. 2026-05-08T19-30Z-T1",
-          "name": "runFolder",
-          "required": true
-        }
-      },
-      "description": "Append a finding from a run journal to planning/memory/coding-standards.md",
-      "flags": {
-        "section": {
-          "name": "section",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "rule": {
-          "name": "rule",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:promote",
-      "pluginAlias": "@arandano/cli",
-      "pluginName": "@arandano/cli",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": ["dist", "commands", "memory", "promote.js"]
-    },
     "migrate:docs": {
       "aliases": [],
       "args": {},
@@ -405,6 +368,43 @@
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": ["dist", "commands", "migrate", "docs.js"]
+    },
+    "memory:promote": {
+      "aliases": [],
+      "args": {
+        "runFolder": {
+          "description": "e.g. 2026-05-08T19-30Z-T1",
+          "name": "runFolder",
+          "required": true
+        }
+      },
+      "description": "Append a finding from a run journal to planning/memory/coding-standards.md",
+      "flags": {
+        "section": {
+          "name": "section",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "rule": {
+          "name": "rule",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:promote",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "memory", "promote.js"]
     }
   },
   "version": "0.0.0"

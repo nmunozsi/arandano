@@ -109,7 +109,8 @@ describe('buildContainerSpec — npm cache volume', () => {
       runFolder: '2026-05-08T19-30Z-T1',
       hostEnv: {},
     });
-    expect(spec.HostConfig.Binds).toContain('arandano-npm-cache:/home/worker/.npm');
+    expect(spec.HostConfig.Binds).toContain('arandano-npm-cache:/tmp/npm-cache');
+    expect(spec.Env).toContain('NPM_CONFIG_CACHE=/tmp/npm-cache');
   });
 });
 
