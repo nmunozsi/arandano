@@ -13,6 +13,9 @@ export interface TimingsFile {
   host?: Record<string, number>;
   worker?: Record<string, number>;
   total_ms: number;
+  cli_tool_calls?: number; // count of tool_use events from stream-json
+  cli_commits?: number; // commits on agent branch beyond base
+  cli_budget_exceeded?: boolean; // reserved for T9
 }
 
 export class PerfRecorder {
