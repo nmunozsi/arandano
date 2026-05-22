@@ -16,6 +16,8 @@ interface Row {
   worker_cli_ms: number;
   worker_gates_ms: number;
   worker_push_ms: number;
+  cli_tool_calls: number;
+  cli_commits: number;
 }
 
 const NUM_COLS: Array<keyof Row> = [
@@ -28,6 +30,8 @@ const NUM_COLS: Array<keyof Row> = [
   'worker_cli_ms',
   'worker_gates_ms',
   'worker_push_ms',
+  'cli_tool_calls',
+  'cli_commits',
 ];
 
 function parseCsv(text: string): Row[] {
@@ -52,6 +56,8 @@ function parseCsv(text: string): Row[] {
       worker_cli_ms: Number(obj['worker_cli_ms'] ?? 0),
       worker_gates_ms: Number(obj['worker_gates_ms'] ?? 0),
       worker_push_ms: Number(obj['worker_push_ms'] ?? 0),
+      cli_tool_calls: Number(obj['cli_tool_calls'] ?? 0),
+      cli_commits: Number(obj['cli_commits'] ?? 0),
     };
   });
 }
@@ -73,6 +79,10 @@ function p95(xs: number[]): number {
 function fmt(ms: number): string {
   if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
   return `${ms}ms`;
+}
+
+function fmtVal(col: keyof Row, val: number): string {
+  return col.endsWith('_ms') ? fmt(val) : val.toLocaleString('en-US');
 }
 
 export default class Bench extends Command {
@@ -116,7 +126,7 @@ export default class Bench extends Command {
       const delta =
         prev != null && prev !== 0 ? `${(((last - prev) / prev) * 100).toFixed(1)}%` : '—';
       this.log(
-        `${col.padEnd(32)} ${fmt(median(vals)).padStart(8)}  ${fmt(p95(vals)).padStart(8)}  ${fmt(last).padStart(8)}   ${delta.padStart(7)}`,
+        `${col.padEnd(32)} ${fmtVal(col, median(vals)).padStart(8)}  ${fmtVal(col, p95(vals)).padStart(8)}  ${fmtVal(col, last).padStart(8)}   ${delta.padStart(7)}`,
       );
     }
   }
