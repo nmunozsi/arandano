@@ -72,10 +72,10 @@ arandano-worker/lib/src/
 
 ## Tasks
 
-- [ ] [T1 — `PerfRecorder` utility in `@arandano/core` (TDD)](T1-perfrecorder-utility-in-arandano-core.md)
-- [ ] [T2 — Vendor `PerfRecorder` in the worker and instrument `driver.ts`](T2-vendor-perfrecorder-in-the-worker-and-instrument-d.md)
-- [ ] [T3 — Instrument `DockerExecutor` (host side) and add CSV merger (TDD)](T3-instrument-dockerexecutor-and-add-csv-merger.md)
-- [ ] [T4 — `arandano bench` CLI command (TDD)](T4-arandano-bench-cli-command.md)
+- [x] [T1 — `PerfRecorder` utility in `@arandano/core` (TDD)](T1-perfrecorder-utility-in-arandano-core.md)
+- [x] [T2 — Vendor `PerfRecorder` in the worker and instrument `driver.ts`](T2-vendor-perfrecorder-in-the-worker-and-instrument-d.md)
+- [x] [T3 — Instrument `DockerExecutor` (host side) and add CSV merger (TDD)](T3-instrument-dockerexecutor-and-add-csv-merger.md)
+- [x] [T4 — `arandano bench` CLI command (TDD)](T4-arandano-bench-cli-command.md)
 - [ ] [T5 — Baseline measurement](T5-baseline-measurement.md)
 - [ ] [T6 — Re-brainstorm based on baseline data (decision gate, no code)](T6-re-brainstorm-based-on-baseline-data.md)
 - [ ] [T7 — Improvement A — npm cache volume (tentative)](T7-improvement-a-npm-cache-volume.md)
