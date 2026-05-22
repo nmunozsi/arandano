@@ -34,8 +34,8 @@ const NUM_COLS: Array<keyof Row> = [
   'cli_commits',
 ];
 
-function parseCsv(text: string): Row[] {
-  const lines = text.split('\n').filter(Boolean);
+export function parseCsv(text: string): Row[] {
+  const lines = text.replace(/\r/g, '').split('\n').filter(Boolean);
   if (lines.length < 2) return [];
   const headers = lines[0]!.split(',');
   return lines.slice(1).map((line) => {
