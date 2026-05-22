@@ -24,6 +24,8 @@ const row = (over: Partial<BenchRow> = {}): BenchRow => ({
   worker_cli_ms: 410000,
   worker_gates_ms: 80000,
   worker_push_ms: 4000,
+  cli_tool_calls: 0,
+  cli_commits: 0,
   ...over,
 });
 
@@ -57,5 +59,18 @@ describe('appendBenchRow', () => {
     expect(lines).toHaveLength(4); // header + 3 rows
     const ids = lines.slice(1).map((l) => l.split(',')[1]);
     expect(ids.sort()).toEqual(['T4', 'T5', 'T6']);
+  });
+
+  it('roundtrip: cli_tool_calls and cli_commits appear in csv', async () => {
+    const csv = join(dir, 'bench.csv');
+    await appendBenchRow(csv, row({ cli_tool_calls: 5, cli_commits: 3 }));
+    const content = await readFile(csv, 'utf8');
+    const lines = content.split('\n').filter(Boolean);
+    // header must contain the columns
+    expect(lines[0]).toContain('cli_tool_calls');
+    expect(lines[0]).toContain('cli_commits');
+    // data row must contain the values
+    expect(lines[1]).toContain(',5,');
+    expect(lines[1]).toContain(',3');
   });
 });

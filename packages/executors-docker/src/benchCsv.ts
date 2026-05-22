@@ -15,10 +15,15 @@ export interface BenchRow {
   worker_cli_ms: number;
   worker_gates_ms: number;
   worker_push_ms: number;
+  cli_tool_calls: number;
+  cli_commits: number;
 }
 
 const HEADER =
-  'timestamp,task_id,stack,image_sha,total_ms,host_gitnexus_prewarm_ms,host_pull_ms,host_clone_ms,host_wait_ms,worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms';
+  'timestamp,task_id,stack,image_sha,total_ms,' +
+  'host_gitnexus_prewarm_ms,host_pull_ms,host_clone_ms,host_wait_ms,' +
+  'worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms,' +
+  'cli_tool_calls,cli_commits';
 
 // Module-level mutex keyed by absolute file path so concurrent appends serialise
 // even across multiple DockerExecutor instances in the same process.
@@ -55,6 +60,8 @@ function toCsvLine(r: BenchRow): string {
     r.worker_cli_ms,
     r.worker_gates_ms,
     r.worker_push_ms,
+    r.cli_tool_calls,
+    r.cli_commits,
   ].join(',');
 }
 

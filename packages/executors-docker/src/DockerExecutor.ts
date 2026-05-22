@@ -193,6 +193,8 @@ export class DockerExecutor implements Executor {
       worker_cli_ms: worker['cli'] ?? 0,
       worker_gates_ms: workerGatesMs,
       worker_push_ms: worker['push_and_pr'] ?? 0,
+      cli_tool_calls: workerTimings?.cli_tool_calls ?? 0,
+      cli_commits: workerTimings?.cli_commits ?? 0,
     };
 
     // Rewrite the merged timings.json on disk with host data added.
