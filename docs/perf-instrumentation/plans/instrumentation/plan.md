@@ -78,9 +78,9 @@ arandano-worker/lib/src/
 - [x] [T4 — `arandano bench` CLI command (TDD)](T4-arandano-bench-cli-command.md)
 - [x] [T5 — Baseline measurement](T5-baseline-measurement.md)
 - [x] [T6 — Decision gate: revised improvements (no code)](T6-re-brainstorm-based-on-baseline-data.md)
-- [ ] [T7 — CLI instrumentation: stream-json, tool_call_count, commit_count](T7-improvement-a-npm-cache-volume.md)
-- [ ] [T8 — Optimizations: npm cache + model selection + context injection](T8-improvement-b-skip-docker-pull-when-local-digest-m.md)
-- [ ] [T9 — Control: cli_budget_ms + bench visualization](T9-improvement-c-pre-bake-gate-tools-in-worker-image.md)
+- [x] [T7 — CLI instrumentation: stream-json, tool_call_count, commit_count](T7-improvement-a-npm-cache-volume.md)
+- [x] [T8 — Optimizations: npm cache + model selection + context injection](T8-improvement-b-skip-docker-pull-when-local-digest-m.md)
+- [x] [T9 — Control: cli_budget_ms + bench visualization](T9-improvement-c-pre-bake-gate-tools-in-worker-image.md)
 - [ ] [T10 — Summary report](T10-summary-report.md)
 
 ---
@@ -95,10 +95,10 @@ arandano-worker/lib/src/
 - [x] `arandano bench` prints median/p95/last/Δ-vs-prev for every phase
 - [x] Baseline CSV committed at `docs/bench/baseline-three-helpers.csv`
 - [x] T6 decision-gate addendum naming the chosen improvements is in this plan
-- [ ] `cli_tool_calls` and `cli_commits` visible in `bench.csv` and `arandano bench` output
-- [ ] Per-task model selection (`model:` frontmatter) wired end-to-end
-- [ ] Selective context injection (`inject_context:` frontmatter) functional in worker
-- [ ] Optional `cli_budget_ms` frontmatter field with over-budget warnings operational
+- [x] `cli_tool_calls` and `cli_commits` visible in `bench.csv` and `arandano bench` output
+- [x] Per-task model selection (`model:` frontmatter) wired end-to-end
+- [x] Selective context injection (`inject_context:` frontmatter) functional in worker
+- [x] Optional `cli_budget_ms` frontmatter field with over-budget warnings operational
 - [ ] Each pursued improvement followed by a measured delta in the Results table
 - [ ] Per-task wall time dropped ≥40% **OR** the Results section explains why and proposes next steps
 - [ ] All existing tests pass; no correctness regressions
