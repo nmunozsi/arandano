@@ -100,6 +100,65 @@ describe('buildContainerSpec', () => {
   });
 });
 
+describe('buildContainerSpec — npm cache volume', () => {
+  it('includes the npm cache named volume bind', () => {
+    const spec = buildContainerSpec({
+      task: baseTask(),
+      image: 'ghcr.io/nmunozsi/arandano-worker:1.0.0',
+      projectRoot: '/abs/repo',
+      runFolder: '2026-05-08T19-30Z-T1',
+      hostEnv: {},
+    });
+    expect(spec.HostConfig.Binds).toContain('arandano-npm-cache:/home/worker/.npm');
+  });
+});
+
+describe('buildContainerSpec — inject_context forwarding', () => {
+  it('emits ARANDANO_INJECT_CONTEXT=<colon-separated> when injectContext has entries', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ injectContext: ['src/greet.ts'] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_INJECT_CONTEXT=src/greet.ts');
+  });
+
+  it('emits colon-separated paths when multiple injectContext entries given', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ injectContext: ['src/greet.ts', 'package.json'] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env).toContain('ARANDANO_INJECT_CONTEXT=src/greet.ts:package.json');
+  });
+
+  it('omits ARANDANO_INJECT_CONTEXT entirely when injectContext is empty', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ injectContext: [] }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env?.find((e) => e.startsWith('ARANDANO_INJECT_CONTEXT='))).toBeUndefined();
+  });
+
+  it('omits ARANDANO_INJECT_CONTEXT entirely when injectContext is undefined', () => {
+    const spec = buildContainerSpec({
+      task: baseTask({ injectContext: undefined }),
+      image: 'x',
+      projectRoot: '/r',
+      runFolder: 'f',
+      hostEnv: {},
+    });
+    expect(spec.Env?.find((e) => e.startsWith('ARANDANO_INJECT_CONTEXT='))).toBeUndefined();
+  });
+});
+
 describe('buildContainerSpec — MCP servers forwarding', () => {
   it('emits ARANDANO_MCP_SERVERS=<single> when one server requested', () => {
     const spec = buildContainerSpec({

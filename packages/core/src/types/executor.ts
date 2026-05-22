@@ -15,6 +15,7 @@ export interface TaskRun {
   workdir: string;
   timeoutMs: number;
   mcpServers: string[];
+  injectContext?: string[]; // paths to inject (relative to workdir)
 }
 
 export type ExitReason =

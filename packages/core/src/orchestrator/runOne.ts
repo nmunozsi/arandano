@@ -41,6 +41,9 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
     workdir: cfg.executor.docker?.workdir ?? '/workspace',
     timeoutMs: (taskMd.frontmatter.timeout_minutes ?? cfg.batching.timeout_minutes) * 60_000,
     mcpServers: taskMd.frontmatter.mcp ?? [],
+    ...(taskMd.frontmatter.inject_context !== undefined
+      ? { injectContext: taskMd.frontmatter.inject_context }
+      : {}),
   };
 
   // Host-side gitnexus cache pre-warm — soft-fail.
