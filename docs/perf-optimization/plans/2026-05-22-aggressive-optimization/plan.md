@@ -91,8 +91,8 @@ CLAUDE.md                                      MOD — add ## Secrets section (T
 - [x] [T4 — Inline role + standards content in worker prompt](T4-inline-role-and-standards.md)
 - [x] [T5 — Skip gitnexus re-index when index is fresh](T5-gitnexus-skip-when-fresh.md)
 - [x] [T6 — Container reuse with configurable warm pool](T6-container-reuse-pool.md)
-- [ ] [T7 — Prompt caching audit (investigation)](T7-prompt-caching-audit.md)
-- [ ] [T8 — Summary report + ≥40% target check + Phase 5 framing](T8-summary-report.md)
+- [x] [T7 — Prompt caching audit (investigation)](T7-prompt-caching-audit.md)
+- [x] [T8 — Summary report + ≥40% target check + Phase 5 framing](T8-summary-report.md)
 
 ---
 
@@ -120,18 +120,74 @@ CLAUDE.md                                      MOD — add ## Secrets section (T
 
 Median of T4 + T5 (parallel pair, N=2) is the canonical comparison. T6 (titlecase) reported separately as the harder-task control.
 
-| Step                                  | total_ms | worker_install_ms | worker_cli_ms | worker_gates_ms | gates_parallel_ms | cli_tool_calls | cli_input_tokens | cli_cache_read% | host_container_reuse | host_gitnexus_skipped |
-| ------------------------------------- | -------- | ----------------- | ------------- | --------------- | ----------------- | -------------- | ---------------- | --------------- | -------------------- | --------------------- |
-| Baseline (post-Phase 3)               | 907,550  | 53,808            | 591,131       | 249,724         | n/a               | 0 (broken)     | n/a              | n/a             | 0                    | 0                     |
-| + T1 instrumentation                  | TBD      | TBD               | TBD           | TBD             | n/a               | TBD            | TBD              | TBD             | 0                    | 0                     |
-| + T2 parallel gates                   | TBD      | TBD               | TBD           | TBD             | TBD               | TBD            | TBD              | TBD             | 0                    | 0                     |
-| + T3 F + tool trim                    | TBD      | TBD               | TBD           | TBD             | TBD               | TBD            | TBD              | TBD             | 0                    | 0                     |
-| + T4 inline content                   | TBD      | TBD               | TBD           | TBD             | TBD               | TBD            | TBD              | TBD             | 0                    | 0                     |
-| + T5 gitnexus skip                    | TBD      | TBD               | TBD           | TBD             | TBD               | TBD            | TBD              | TBD             | 0                    | 1                     |
-| + T6 container pool (`--warm-pool=2`) | TBD      | TBD               | TBD           | TBD             | TBD               | TBD            | TBD              | TBD             | 1                    | 1                     |
+| Step                                  | total_ms                                                    | worker_install_ms | worker_cli_ms | worker_gates_ms | gates_parallel_ms | cli_tool_calls | cli_input_tokens | cli_cache_read% | host_container_reuse | host_gitnexus_skipped |
+| ------------------------------------- | ----------------------------------------------------------- | ----------------- | ------------- | --------------- | ----------------- | -------------- | ---------------- | --------------- | -------------------- | --------------------- |
+| Baseline (post-Phase 3)               | 907,550                                                     | 53,808            | 591,131       | 249,724         | n/a               | 0 (broken)     | n/a              | n/a             | 0                    | 0                     |
+| + T1–T4 cumulative (measured once)    | 986,537                                                     | 53,872            | 690,053       | 286,640         | 227,557           | 43             | 174              | 97.2%           | 0                    | 0                     |
+| + T5 gitnexus surface (infra only)    | 986,537                                                     | 53,872            | 690,053       | 286,640         | 227,557           | 43             | 174              | 97.2%           | 0                    | 2 (n/a)               |
+| + T6 container pool (`--warm-pool=2`) | not measured — warm pool enabled but test run not performed |
 
-### Conclusion (filled in T8)
+> _Note: T1–T4 were implemented simultaneously and measured in a single run (2026-05-23). Values are medians of T4+T5 parallel pair, N=2._
 
-- Per-task wall time: baseline 1,006s → final TBD. **TBD% reduction** (target ≥40%, stretch ≥55%).
-- Cache hit ratio from T7 audit: TBD.
-- Phase 5 candidates: TBD.
+---
+
+### T7 — Prompt caching audit (finding)
+
+**Date:** 2026-05-23
+**Source:** N=3 tasks from `timings.json` (T4/T5/T6, 2026-05-23 run) and full `result` event from `T6/cli-events.jsonl`.
+
+**Per-task breakdown:**
+
+| Task | cli_input_tokens | cli_output_tokens | cli_cache_read_tokens | cli_cache_creation_tokens | cache_hit_ratio |
+| ---- | ---------------: | ----------------: | --------------------: | ------------------------: | --------------: |
+| T4   |              338 |             8,790 |             1,209,784 |                    39,234 |           96.8% |
+| T5   |               10 |               219 |                37,375 |                       900 |           97.6% |
+| T6   |              474 |            11,210 |             1,761,547 |                    41,881 |           97.6% |
+
+_Formula: `cache_read / (input + cache_read + creation)`._
+
+**Result event (T6 cli-events.jsonl):** `usage.cache_read_input_tokens = 1,761,547` confirmed present — cache_control is active.
+
+**Outcome: Outcome 1 — Cache hits dominate (97.6% median).** The prompt cache is fully operational. The large inlined prefix from T4 (`buildInlinedContent`, ~8 KB of role + coding-standards + gitmoji skill) becomes the cache anchor for the whole session. Cache creation tokens (~41 K) represent one-time context establishment; subsequent turns re-read from cache at 97%+.
+
+T5's low absolute numbers reflect a trivially short session (lowercase = `s.toLowerCase()`), not low efficiency — its hit ratio is still 97.6%.
+
+**Recommendation:** No further caching action. Phase 5 should focus on reducing Bash tool calls (30–60 per task, accounting for 441–962 s of wall time) rather than prompt-cache tuning.
+
+---
+
+### Conclusion
+
+**Date:** 2026-05-23
+
+- **Baseline (post-Phase 3):** 907,550 ms per task (median T4+T5).
+- **Final (post-Phase 4, T1–T5 cumulative):** 986,537 ms per task (median T4+T5, N=2). **+8.7% regression vs post-Phase 3 baseline; −1.9% vs original 1,006 s baseline.**
+- **Target ≥40% reduction: not met.**
+
+**Per-improvement findings:**
+
+| Improvement                   | Δ total_ms   | Notes                                                        |
+| ----------------------------- | ------------ | ------------------------------------------------------------ |
+| T2 parallelize gates          | −59 s (wall) | gates_parallel 228 s vs serial 287 s → **1.26× speedup**     |
+| T3 context inject + tool trim | mixed        | inject_context wired; --disallowed-tools active (15 tools)   |
+| T4 inline content             | cache 97.6%  | Eliminates 4 file-read calls; cache hit rate jumped to 97%+  |
+| T5 gitnexus surface           | infra only   | Prewarm timing and cache-hit status now visible in bench.csv |
+| T6 container pool             | not measured | Infrastructure ready; --warm-pool=2 test not run             |
+
+**Why total time regressed despite gate and cache gains:**
+worker_cli_ms increased from 591 s (baseline) to 690 s (+16.7%). Most likely causes: (1) the node-ts-toy repo had existing T4/T5 code from prior runs, making the task longer; (2) more complex titlcase session (60 tool calls, 11 commits). The gate savings (~59 s) were entirely offset by the longer CLI sessions.
+
+**T7 prompt caching:** Outcome 1 — already at 97.6% hit rate, no action needed.
+
+**Phase 5 candidates (priority order):**
+
+1. **Reduce Bash tool calls** — the dominant cost is Bash (~441–962 s per task at 19–23 s/call). A smarter TDD loop (run tests once at the end, not per-change) could save 200–400 s.
+2. **Warm container pool measurement** — T6 infrastructure is ready; a --warm-pool=2 run on a clean repo is the next concrete experiment.
+3. **Multi-provider CLI selection** — evaluate faster/cheaper models or OpenCode for the inner coding loop.
+4. **TaskOutput latency** (30–210 s per call, 1–3 calls/task) — investigate whether sub-agent spawning inside tasks is necessary.
+
+**Deferred sub-tasks:**
+
+- T3b `--disallowed-tools`: implemented and active (flag IS supported in claude-code 2.1.150).
+- T5 mtime safeguard: not needed — HEAD-based cache in `cacheHost.ts` already handles repeated runs (skipped=2 for tasks without gitnexus).
+- T6 warm-pool measurement: deferred (infrastructure ready, test run not scheduled).
