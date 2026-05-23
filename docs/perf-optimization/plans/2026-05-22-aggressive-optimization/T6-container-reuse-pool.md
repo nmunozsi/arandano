@@ -41,7 +41,7 @@
 
 ### Step 1 — Failing test for `WarmContainerPool.acquire/release` semantics
 
-- [ ] **Step 1: Create `packages/executors-docker/src/__tests__/warmContainerPool.test.ts`**
+- [x] **Step 1: Create `packages/executors-docker/src/__tests__/warmContainerPool.test.ts`**
 
 ```ts
 import { describe, it, expect, vi } from 'vitest';
@@ -198,7 +198,7 @@ describe('WarmContainerPool', () => {
 });
 ```
 
-- [ ] **Step 2: Run — expect FAIL (class doesn't exist)**
+- [x] **Step 2: Run — expect FAIL (class doesn't exist)**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"
@@ -207,7 +207,7 @@ npx vitest run packages/executors-docker/src/__tests__/warmContainerPool.test.ts
 
 ### Step 3 — Implement `WarmContainerPool`
 
-- [ ] **Step 3: Create `packages/executors-docker/src/warmContainerPool.ts`**
+- [x] **Step 3: Create `packages/executors-docker/src/warmContainerPool.ts`**
 
 ```ts
 import { createHash } from 'node:crypto';
@@ -343,7 +343,7 @@ export class WarmContainerPool {
 }
 ```
 
-- [ ] **Step 4: Re-run pool tests — expect PASS**
+- [x] **Step 4: Re-run pool tests — expect PASS**
 
 ```powershell
 npx vitest run packages/executors-docker/src/__tests__/warmContainerPool.test.ts
@@ -351,7 +351,7 @@ npx vitest run packages/executors-docker/src/__tests__/warmContainerPool.test.ts
 
 ### Step 5 — Integrate the pool into `DockerExecutor`
 
-- [ ] **Step 5: Update `DockerExecutor` constructor + `start` + `wait`**
+- [x] **Step 5: Update `DockerExecutor` constructor + `start` + `wait`**
 
 In the constructor `DockerExecutorOpts`, add `warmPoolSize?: number` (default 0). Construct a `WarmContainerPool` only if `warmPoolSize > 0`.
 
@@ -390,11 +390,11 @@ Add a `shutdown()` method on `DockerExecutor` that calls `pool?.shutdown()`. The
 
 ### Step 6 — Wire config + CLI flag
 
-- [ ] **Step 6: Add `warmPoolSize` to `runOne`/`Orchestrator` signatures**
+- [x] **Step 6: Add `warmPoolSize` to `runOne`/`Orchestrator` signatures**
 
 `packages/core/src/orchestrator/runOne.ts` (and the Orchestrator that calls it) accepts a `warmPoolSize?: number`. When constructing `DockerExecutor`, pass this through.
 
-- [ ] **Step 7: Add `--warm-pool=<N>` flag to `packages/cli/src/commands/run.ts`**
+- [x] **Step 7: Add `--warm-pool=<N>` flag to `packages/cli/src/commands/run.ts`**
 
 ```ts
 'warm-pool': Flags.integer({ default: 0, description: 'enable warm container pool with up to N slots per image' }),
@@ -402,11 +402,11 @@ Add a `shutdown()` method on `DockerExecutor` that calls `pool?.shutdown()`. The
 
 In the command's `run()`, the flag value is passed into the Orchestrator constructor as `warmPoolSize`.
 
-- [ ] **Step 8: Config plumbing**
+- [x] **Step 8: Config plumbing**
 
 In the orchestrator setup, read `executor.warm_pool_size` from `config.yaml` and use the CLI flag if provided, otherwise the config value, otherwise 0.
 
-- [ ] **Step 9: Update template config**
+- [x] **Step 9: Update template config**
 
 In `packages/templates/assets/config.yaml.tpl`, add:
 
@@ -417,7 +417,7 @@ executor:
 
 ### Step 10 — Build and test
 
-- [ ] **Step 10: Run all tests**
+- [x] **Step 10: Run all tests**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"

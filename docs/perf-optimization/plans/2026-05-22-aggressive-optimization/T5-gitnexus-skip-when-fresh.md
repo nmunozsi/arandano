@@ -37,7 +37,7 @@
 
 ### Step 1 — Failing test for prewarm time propagation
 
-- [ ] **Step 1: Add this test to `packages/core/src/orchestrator/__tests__/runOne.test.ts`**
+- [x] **Step 1: Add this test to `packages/core/src/orchestrator/__tests__/runOne.test.ts`**
 
 ```ts
 it('passes gitnexusStatus and gitnexusPrewarmMs into the executor.start TaskRun', async () => {
@@ -62,7 +62,7 @@ it('passes gitnexusStatus and gitnexusPrewarmMs into the executor.start TaskRun'
 });
 ```
 
-- [ ] **Step 2: Run — expect FAIL**
+- [x] **Step 2: Run — expect FAIL**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"
@@ -71,7 +71,7 @@ npx vitest run packages/core/src/orchestrator/__tests__/runOne.test.ts
 
 ### Step 3 — Extend `TaskRun` in `packages/core/src/types/executor.ts`
 
-- [ ] **Step 3: Add the two fields**
+- [x] **Step 3: Add the two fields**
 
 ```ts
 export interface TaskRun {
@@ -83,7 +83,7 @@ export interface TaskRun {
 
 ### Step 4 — Time and capture the gitnexus call in `runOne.ts`
 
-- [ ] **Step 4: Replace the gitnexus prewarm block in `packages/core/src/orchestrator/runOne.ts`**
+- [x] **Step 4: Replace the gitnexus prewarm block in `packages/core/src/orchestrator/runOne.ts`**
 
 Find:
 
@@ -116,11 +116,11 @@ taskRun.gitnexusStatus = gitnexusStatus;
 taskRun.gitnexusPrewarmMs = gitnexusPrewarmMs;
 ```
 
-- [ ] **Step 5: Re-run test — expect PASS**
+- [x] **Step 5: Re-run test — expect PASS**
 
 ### Step 6 — Wire into `DockerExecutor.mergeBenchRow`
 
-- [ ] **Step 6: Update `DockerExecutor.start` to retain `gitnexusStatus`/`gitnexusPrewarmMs`**
+- [x] **Step 6: Update `DockerExecutor.start` to retain `gitnexusStatus`/`gitnexusPrewarmMs`**
 
 Add to the `running.set(...)` entry:
 
@@ -139,7 +139,7 @@ this.running.set(id, {
 
 (Extend the `running` Map's value-type accordingly: add `gitnexusStatus?: string` and `gitnexusPrewarmMs: number`.)
 
-- [ ] **Step 7: Update `mergeBenchRow` to emit the new columns**
+- [x] **Step 7: Update `mergeBenchRow` to emit the new columns**
 
 In `DockerExecutor.ts`, find the `row: BenchRow = { ... }` literal and update **two lines** that T1 left as placeholders:
 
@@ -176,7 +176,7 @@ host_gitnexus_skipped:
 
 ### Step 8 — Run tests + build
 
-- [ ] **Step 8: Test + build**
+- [x] **Step 8: Test + build**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"

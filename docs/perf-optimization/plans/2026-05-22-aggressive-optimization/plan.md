@@ -89,8 +89,8 @@ CLAUDE.md                                      MOD — add ## Secrets section (T
 - [x] [T2 — Parallelize gates with serial escape hatch](T2-parallelize-gates.md)
 - [x] [T3 — Exercise context injection + trim Claude tool surface](T3-context-injection-and-tool-trim.md)
 - [x] [T4 — Inline role + standards content in worker prompt](T4-inline-role-and-standards.md)
-- [ ] [T5 — Skip gitnexus re-index when index is fresh](T5-gitnexus-skip-when-fresh.md)
-- [ ] [T6 — Container reuse with configurable warm pool](T6-container-reuse-pool.md)
+- [x] [T5 — Skip gitnexus re-index when index is fresh](T5-gitnexus-skip-when-fresh.md)
+- [x] [T6 — Container reuse with configurable warm pool](T6-container-reuse-pool.md)
 - [ ] [T7 — Prompt caching audit (investigation)](T7-prompt-caching-audit.md)
 - [ ] [T8 — Summary report + ≥40% target check + Phase 5 framing](T8-summary-report.md)
 
