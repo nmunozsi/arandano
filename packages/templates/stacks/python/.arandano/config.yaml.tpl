@@ -6,6 +6,7 @@ project:
 
 executor:
   backend: docker
+  warm_pool_size: 0 # >0 enables warm container pool (max slots per image)
   docker:
     image: {{worker_image}}
     workdir: /workspace

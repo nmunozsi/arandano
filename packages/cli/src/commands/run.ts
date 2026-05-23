@@ -24,6 +24,10 @@ export default class Run extends Command {
       description: 'suppress the architect task even when enabled in config',
       default: false,
     }),
+    'warm-pool': Flags.integer({
+      default: 0,
+      description: 'enable warm container pool with up to N slots per image',
+    }),
   };
 
   async run(): Promise<void> {
@@ -36,8 +40,14 @@ export default class Run extends Command {
     const projectRoot = process.cwd();
     const cfg = yaml.parse(
       await readFile(join(projectRoot, '.arandano', 'config.yaml'), 'utf8'),
-    ) as { executor: { docker: { image: string } } };
-    const executor = new DockerExecutor({ image: cfg.executor.docker.image, projectRoot });
+    ) as { executor: { docker: { image: string }; warm_pool_size?: number } };
+    const warmPoolSize =
+      flags['warm-pool'] > 0 ? flags['warm-pool'] : (cfg.executor.warm_pool_size ?? 0);
+    const executor = new DockerExecutor({
+      image: cfg.executor.docker.image,
+      projectRoot,
+      warmPoolSize,
+    });
 
     if (flags.plan) {
       const o = new Orchestrator({
