@@ -31,7 +31,7 @@
 
 ### Step 1 — Failing test for parallel mode
 
-- [ ] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/runGates.test.ts`**
+- [x] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/runGates.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -137,7 +137,7 @@ describe('runGates parallel', () => {
 });
 ```
 
-- [ ] **Step 2: Run — expect FAIL** (`parallel` flag does not exist; `gates_parallel_ms` not in result)
+- [x] **Step 2: Run — expect FAIL** (`parallel` flag does not exist; `gates_parallel_ms` not in result)
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -146,7 +146,7 @@ npx vitest run src/__tests__/runGates.test.ts -t "runGates parallel"
 
 ### Step 3 — Rewrite `runGates`
 
-- [ ] **Step 3: Replace `runGates.ts` content**
+- [x] **Step 3: Replace `runGates.ts` content**
 
 ```ts
 import type { ShellResult } from './gates/_shell.js';
@@ -241,7 +241,7 @@ export async function runGates(opts: {
 }
 ```
 
-- [ ] **Step 4: Re-run tests — expect PASS**
+- [x] **Step 4: Re-run tests — expect PASS**
 
 ```powershell
 npx vitest run src/__tests__/runGates.test.ts
@@ -249,7 +249,7 @@ npx vitest run src/__tests__/runGates.test.ts
 
 ### Step 5 — Wire `parallel` from config into `driver.ts`
 
-- [ ] **Step 5: In `arandano-worker/lib/src/driver.ts`, read `gates.parallel` from `config.yaml`**
+- [x] **Step 5: In `arandano-worker/lib/src/driver.ts`, read `gates.parallel` from `config.yaml`**
 
 After the existing `const cfg = yaml.parse(cfgRaw) as { ... }` line, extend the type and read:
 
@@ -261,7 +261,7 @@ const cfg = yaml.parse(cfgRaw) as {
 const gatesParallel = cfg.gates?.parallel ?? true;
 ```
 
-- [ ] **Step 6: Pass `parallel` into `runGates(...)`**
+- [x] **Step 6: Pass `parallel` into `runGates(...)`**
 
 Find the `runGates({ order: [...], gates: { ... } })` call. Add:
 
@@ -275,7 +275,7 @@ const gates = await runGates({
 });
 ```
 
-- [ ] **Step 7: Persist `gates_parallel_ms` and `gates_serial_sum_ms` into `timings.json`**
+- [x] **Step 7: Persist `gates_parallel_ms` and `gates_serial_sum_ms` into `timings.json`**
 
 In the post-success block where timings are patched, after the existing T1 patches, add:
 
@@ -288,7 +288,7 @@ Mirror inside `fail(...)` if `gates` is defined.
 
 ### Step 8 — Update template config
 
-- [ ] **Step 8: Add to `packages/templates/assets/config.yaml.tpl`**
+- [x] **Step 8: Add to `packages/templates/assets/config.yaml.tpl`**
 
 Find the existing config sections and add a new top-level block:
 
@@ -301,7 +301,7 @@ gates:
 
 ### Step 9 — Run worker tests
 
-- [ ] **Step 9: Run all worker tests**
+- [x] **Step 9: Run all worker tests**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -312,7 +312,7 @@ All pass.
 
 ### Step 10 — Commit and push worker
 
-- [ ] **Step 10: Commit and push**
+- [x] **Step 10: Commit and push**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker
@@ -321,7 +321,7 @@ git commit -m ":zap: perf(gates): parallelize read-only gates with serial commit
 git push origin main
 ```
 
-- [ ] **Step 11: Wait for image build**
+- [x] **Step 11: Wait for image build**
 
 ```powershell
 gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1 --json databaseId --jq '.[0].databaseId') --repo nmunozsi/arandano-worker
@@ -329,14 +329,14 @@ gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worke
 
 ### Step 12 — Build monorepo + run measurement
 
-- [ ] **Step 12: Build monorepo**
+- [x] **Step 12: Build monorepo**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"
 npm run build
 ```
 
-- [ ] **Step 13: Reset state and run three-helpers plan**
+- [x] **Step 13: Reset state and run three-helpers plan**
 
 Reset node-ts-toy `.arandano/state.json` (keep only AS1/AS2 completed), then:
 
@@ -345,7 +345,7 @@ cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy"
 node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" run --plan 2026-05-11-three-helpers
 ```
 
-- [ ] **Step 14: Capture bench output**
+- [x] **Step 14: Capture bench output**
 
 ```powershell
 node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" bench
@@ -355,11 +355,11 @@ Confirm `gates_parallel_ms` < `gates_serial_sum_ms` for T4/T5/T6, with ratio ≥
 
 ### Step 15 — Record results and commit
 
-- [ ] **Step 15: Append "+ T2 parallel gates" row** in plan.md Results table with median of T4+T5.
+- [x] **Step 15: Append "+ T2 parallel gates" row** in plan.md Results table with median of T4+T5.
 
-- [ ] **Step 16: Tick T2 checkbox in plan.md**
+- [x] **Step 16: Tick T2 checkbox in plan.md**
 
-- [ ] **Step 17: Commit monorepo + results**
+- [x] **Step 17: Commit monorepo + results**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano

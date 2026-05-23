@@ -255,81 +255,6 @@
       "isESM": true,
       "relativePath": ["dist", "commands", "version.js"]
     },
-    "migrate:docs": {
-      "aliases": [],
-      "args": {},
-      "description": "Migrate docs/plans/ and .arandano/tasks/ to the new spec→plans→phases→tasks hierarchy.",
-      "flags": {
-        "project": {
-          "description": "project root (defaults to current dir)",
-          "name": "project",
-          "default": "C:\\Users\\nmuno\\OneDrive\\Documentos\\Frutas\\arandano\\packages\\cli",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "commit": {
-          "description": "actually perform the migration (without this, runs as a dry-run)",
-          "name": "commit",
-          "allowNo": false,
-          "type": "boolean"
-        },
-        "spec": {
-          "description": "spec name to use when migrating a user project (.arandano/tasks/)",
-          "name": "spec",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "migrate:docs",
-      "pluginAlias": "@arandano/cli",
-      "pluginName": "@arandano/cli",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": ["dist", "commands", "migrate", "docs.js"]
-    },
-    "memory:promote": {
-      "aliases": [],
-      "args": {
-        "runFolder": {
-          "description": "e.g. 2026-05-08T19-30Z-T1",
-          "name": "runFolder",
-          "required": true
-        }
-      },
-      "description": "Append a finding from a run journal to planning/memory/coding-standards.md",
-      "flags": {
-        "section": {
-          "name": "section",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "rule": {
-          "name": "rule",
-          "required": true,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "memory:promote",
-      "pluginAlias": "@arandano/cli",
-      "pluginName": "@arandano/cli",
-      "pluginType": "core",
-      "strict": true,
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": ["dist", "commands", "memory", "promote.js"]
-    },
     "issue:close": {
       "aliases": [],
       "args": {
@@ -411,6 +336,81 @@
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": ["dist", "commands", "issue", "open.js"]
+    },
+    "memory:promote": {
+      "aliases": [],
+      "args": {
+        "runFolder": {
+          "description": "e.g. 2026-05-08T19-30Z-T1",
+          "name": "runFolder",
+          "required": true
+        }
+      },
+      "description": "Append a finding from a run journal to planning/memory/coding-standards.md",
+      "flags": {
+        "section": {
+          "name": "section",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "rule": {
+          "name": "rule",
+          "required": true,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "memory:promote",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "memory", "promote.js"]
+    },
+    "migrate:docs": {
+      "aliases": [],
+      "args": {},
+      "description": "Migrate docs/plans/ and .arandano/tasks/ to the new spec→plans→phases→tasks hierarchy.",
+      "flags": {
+        "project": {
+          "description": "project root (defaults to current dir)",
+          "name": "project",
+          "default": "C:\\Users\\nmuno\\OneDrive\\Documentos\\Frutas\\arandano\\packages\\cli",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "commit": {
+          "description": "actually perform the migration (without this, runs as a dry-run)",
+          "name": "commit",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "spec": {
+          "description": "spec name to use when migrating a user project (.arandano/tasks/)",
+          "name": "spec",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "migrate:docs",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "migrate", "docs.js"]
     }
   },
   "version": "0.0.0"

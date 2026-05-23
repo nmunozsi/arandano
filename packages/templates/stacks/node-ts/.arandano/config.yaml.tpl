@@ -46,3 +46,8 @@ batching:
   retry_policy:
     max_attempts: 1
     on: [container_error, network_error]
+
+# Gate execution mode. Default true runs read-only gates in parallel.
+# Set to false to force the legacy sequential fail-fast behavior.
+gates:
+  parallel: true
