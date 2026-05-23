@@ -35,7 +35,7 @@
 
 ### Step 1 — Probe the Claude Code CLI for `--disallowed-tools` support
 
-- [ ] **Step 1: Run from anywhere on the host**
+- [x] **Step 1: Run from anywhere on the host**
 
 ```powershell
 claude --help 2>&1 | Select-String -Pattern "disallowed-tools|disable-tools|allowed-tools|tools"
@@ -47,7 +47,7 @@ If neither is present, **skip Steps 5–6 entirely** and note in T8 summary that
 
 ### Step 2 — Add `inject_context:` to T4 task frontmatter
 
-- [ ] **Step 2: Read the current frontmatter**
+- [x] **Step 2: Read the current frontmatter**
 
 ```powershell
 node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" --version
@@ -55,7 +55,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Open `C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy\.arandano\specs\helpers\plans\2026-05-11-three-helpers\T4-add-uppercase.md`. The frontmatter is YAML between `---` lines at the top.
 
-- [ ] **Step 3: Add the `inject_context` key**
+- [x] **Step 3: Add the `inject_context` key**
 
 Add this line to the frontmatter:
 
@@ -68,13 +68,13 @@ inject_context:
 
 ### Step 4 — Repeat for T5 and T6
 
-- [ ] **Step 4: T5 frontmatter** — same `inject_context: [src/greet.ts]`.
+- [x] **Step 4: T5 frontmatter** — same `inject_context: [src/greet.ts]`.
 
-- [ ] **Step 5: T6 frontmatter (titlecase)** — same `inject_context: [src/greet.ts]`. (Titlecase still benefits from seeing the existing structure even though it builds on the other two.)
+- [x] **Step 5: T6 frontmatter (titlecase)** — same `inject_context: [src/greet.ts]`. (Titlecase still benefits from seeing the existing structure even though it builds on the other two.)
 
 ### Step 6 — Add `--disallowed-tools` arg in `driver.ts` (only if Step 1 confirmed support)
 
-- [ ] **Step 6: Update the `invokeCli` args in `arandano-worker/lib/src/driver.ts`**
+- [x] **Step 6: Update the `invokeCli` args in `arandano-worker/lib/src/driver.ts`**
 
 Find:
 
@@ -117,7 +117,7 @@ Apply the same change to the fallback `invokeCli` call (the one without `--outpu
 
 ### Step 7 — Build and test
 
-- [ ] **Step 7: Worker tests**
+- [x] **Step 7: Worker tests**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -127,7 +127,7 @@ npm test
 
 ### Step 8 — Commit and push worker
 
-- [ ] **Step 8: Commit + push**
+- [x] **Step 8: Commit + push**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker
@@ -138,7 +138,7 @@ git push origin main
 
 (If T3b was skipped, also skip this commit and proceed straight to Step 10.)
 
-- [ ] **Step 9: Wait for image build**
+- [x] **Step 9: Wait for image build**
 
 ```powershell
 gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1 --json databaseId --jq '.[0].databaseId') --repo nmunozsi/arandano-worker
@@ -146,7 +146,7 @@ gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worke
 
 ### Step 10 — Commit task frontmatter changes
 
-- [ ] **Step 10: Commit node-ts-toy changes**
+- [x] **Step 10: Commit node-ts-toy changes**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy

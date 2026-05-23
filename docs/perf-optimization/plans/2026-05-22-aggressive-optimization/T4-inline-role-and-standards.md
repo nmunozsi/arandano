@@ -29,7 +29,7 @@
 
 ### Step 1 — Failing test for `buildInlinedContent`
 
-- [ ] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/driver.test.ts`**
+- [x] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/driver.test.ts`**
 
 ```ts
 import { buildInlinedContent } from '../driver.js';
@@ -74,7 +74,7 @@ describe('buildInlinedContent', () => {
 });
 ```
 
-- [ ] **Step 2: Run — expect FAIL (function not exported)**
+- [x] **Step 2: Run — expect FAIL (function not exported)**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -134,7 +134,7 @@ export async function buildInlinedContent(
 }
 ```
 
-- [ ] **Step 4: Re-run — expect PASS**
+- [x] **Step 4: Re-run — expect PASS**
 
 ```powershell
 npx vitest run src/__tests__/driver.test.ts -t "buildInlinedContent"
@@ -142,7 +142,7 @@ npx vitest run src/__tests__/driver.test.ts -t "buildInlinedContent"
 
 ### Step 5 — Wire it into the prompt and remove the "Read these files" instructions
 
-- [ ] **Step 5: In `arandano-worker/lib/src/driver.ts`, update prompt construction**
+- [x] **Step 5: In `arandano-worker/lib/src/driver.ts`, update prompt construction**
 
 Find:
 
@@ -180,7 +180,7 @@ const prompt = inlinedBlock + contextBlock + promptBody;
 
 ### Step 6 — Build and test
 
-- [ ] **Step 6: Build and run all tests**
+- [x] **Step 6: Build and run all tests**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -190,7 +190,7 @@ npm test
 
 ### Step 7 — Commit, push, wait for image
 
-- [ ] **Step 7: Commit + push worker**
+- [x] **Step 7: Commit + push worker**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker
@@ -199,7 +199,7 @@ git commit -m ":zap: perf(driver): inline role + standards + gitmoji skill into 
 git push origin main
 ```
 
-- [ ] **Step 8: Wait for image build**
+- [x] **Step 8: Wait for image build**
 
 ```powershell
 gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1 --json databaseId --jq '.[0].databaseId') --repo nmunozsi/arandano-worker
