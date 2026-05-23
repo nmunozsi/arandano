@@ -19,6 +19,16 @@ const SAMPLE_CSV =
   ].join('\n') + '\n';
 
 describe('parseCsv', () => {
+  it('parses cli_input_tokens column', () => {
+    const csv = [
+      'timestamp,task_id,stack,image_sha,total_ms,host_gitnexus_prewarm_ms,host_pull_ms,host_clone_ms,host_wait_ms,worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms,cli_tool_calls,cli_commits,cli_input_tokens,cli_output_tokens,cli_cache_read_tokens,cli_cache_creation_tokens,gates_parallel_ms,gates_serial_sum_ms,host_container_reuse,host_gitnexus_skipped',
+      '2026-05-22T20:00:00.000Z,T4,node-ts,image,500000,0,1000,300,498000,40000,400000,80000,1000,5,3,1234,567,9876,123,40000,80000,0,0',
+    ].join('\n');
+    const rows = parseCsv(csv);
+    expect(rows[0]!.cli_input_tokens).toBe(1234);
+    expect(rows[0]!.cli_output_tokens).toBe(567);
+  });
+
   it('parses old-format CSV (no cli_tool_calls/cli_commits columns) with defaults of 0', () => {
     // Old format: no cli_tool_calls or cli_commits columns
     const csv = [

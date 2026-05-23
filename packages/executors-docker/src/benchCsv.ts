@@ -17,13 +17,23 @@ export interface BenchRow {
   worker_push_ms: number;
   cli_tool_calls: number;
   cli_commits: number;
+  cli_input_tokens: number;
+  cli_output_tokens: number;
+  cli_cache_read_tokens: number;
+  cli_cache_creation_tokens: number;
+  gates_parallel_ms: number;
+  gates_serial_sum_ms: number;
+  host_container_reuse: number;
+  host_gitnexus_skipped: number;
 }
 
 const HEADER =
   'timestamp,task_id,stack,image_sha,total_ms,' +
   'host_gitnexus_prewarm_ms,host_pull_ms,host_clone_ms,host_wait_ms,' +
   'worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms,' +
-  'cli_tool_calls,cli_commits';
+  'cli_tool_calls,cli_commits,' +
+  'cli_input_tokens,cli_output_tokens,cli_cache_read_tokens,cli_cache_creation_tokens,' +
+  'gates_parallel_ms,gates_serial_sum_ms,host_container_reuse,host_gitnexus_skipped';
 
 // Module-level mutex keyed by absolute file path so concurrent appends serialise
 // even across multiple DockerExecutor instances in the same process.
@@ -62,6 +72,14 @@ function toCsvLine(r: BenchRow): string {
     r.worker_push_ms,
     r.cli_tool_calls,
     r.cli_commits,
+    r.cli_input_tokens,
+    r.cli_output_tokens,
+    r.cli_cache_read_tokens,
+    r.cli_cache_creation_tokens,
+    r.gates_parallel_ms,
+    r.gates_serial_sum_ms,
+    r.host_container_reuse,
+    r.host_gitnexus_skipped,
   ].join(',');
 }
 

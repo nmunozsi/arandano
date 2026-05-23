@@ -39,7 +39,7 @@
 
 ### Step 1 — Write a failing test for the new event-envelope writer
 
-- [ ] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/invokeClaudeCode.test.ts`**
+- [x] **Step 1: Add this test to `arandano-worker/lib/src/__tests__/invokeClaudeCode.test.ts`**
 
 ```ts
 import { describe, it, expect } from 'vitest';
@@ -74,7 +74,7 @@ describe('event envelope', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test**
+- [x] **Step 2: Run the test**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -85,7 +85,7 @@ Expected: PASS (it's a static fixture test). This locks the envelope schema.
 
 ### Step 3 — Update `invokeClaudeCode.ts` to write the envelope
 
-- [ ] **Step 3: Replace the file-stream write in `arandano-worker/lib/src/invokeClaudeCode.ts`**
+- [x] **Step 3: Replace the file-stream write in `arandano-worker/lib/src/invokeClaudeCode.ts`**
 
 Find:
 
@@ -159,7 +159,7 @@ proc.on('close', (code) => {
 
 ### Step 4 — Failing test for new `parseCliEvents` schema
 
-- [ ] **Step 4: Replace the `parseCliEvents` tests in `arandano-worker/lib/src/__tests__/driver.test.ts`**
+- [x] **Step 4: Replace the `parseCliEvents` tests in `arandano-worker/lib/src/__tests__/driver.test.ts`**
 
 Find the existing `describe('parseCliEvents', () => { ... })` block and replace with:
 
@@ -217,7 +217,7 @@ describe('parseCliEvents (envelope + nested tool_use)', () => {
 });
 ```
 
-- [ ] **Step 5: Run the test — expect FAIL**
+- [x] **Step 5: Run the test — expect FAIL**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -228,7 +228,7 @@ Expected: FAIL — `parseCliEvents` returns 0 because the current parser only ma
 
 ### Step 6 — Rewrite `parseCliEvents` in `driver.ts`
 
-- [ ] **Step 6: Replace `parseCliEvents` in `arandano-worker/lib/src/driver.ts`**
+- [x] **Step 6: Replace `parseCliEvents` in `arandano-worker/lib/src/driver.ts`**
 
 ```ts
 export async function parseCliEvents(eventsPath: string): Promise<number> {
@@ -259,7 +259,7 @@ export async function parseCliEvents(eventsPath: string): Promise<number> {
 }
 ```
 
-- [ ] **Step 7: Re-run the test — expect PASS**
+- [x] **Step 7: Re-run the test — expect PASS**
 
 ```powershell
 npx vitest run src/__tests__/driver.test.ts -t "parseCliEvents"
@@ -269,7 +269,7 @@ Expected: PASS.
 
 ### Step 8 — Add `parseCliTokens` with failing test
 
-- [ ] **Step 8: Add this test to `driver.test.ts`**
+- [x] **Step 8: Add this test to `driver.test.ts`**
 
 ```ts
 import { parseCliTokens } from '../driver.js';
@@ -323,13 +323,13 @@ describe('parseCliTokens', () => {
 });
 ```
 
-- [ ] **Step 9: Run — expect FAIL (function not exported)**
+- [x] **Step 9: Run — expect FAIL (function not exported)**
 
 ```powershell
 npx vitest run src/__tests__/driver.test.ts -t "parseCliTokens"
 ```
 
-- [ ] **Step 10: Add `parseCliTokens` to `driver.ts`** (next to `parseCliEvents`)
+- [x] **Step 10: Add `parseCliTokens` to `driver.ts`** (next to `parseCliEvents`)
 
 ```ts
 export interface CliTokens {
@@ -373,7 +373,7 @@ export async function parseCliTokens(eventsPath: string): Promise<CliTokens> {
 }
 ```
 
-- [ ] **Step 11: Re-run — expect PASS**
+- [x] **Step 11: Re-run — expect PASS**
 
 ```powershell
 npx vitest run src/__tests__/driver.test.ts -t "parseCliTokens"
@@ -381,7 +381,7 @@ npx vitest run src/__tests__/driver.test.ts -t "parseCliTokens"
 
 ### Step 12 — Add `parseCliToolTimings` with failing test
 
-- [ ] **Step 12: Add this test to `driver.test.ts`**
+- [x] **Step 12: Add this test to `driver.test.ts`**
 
 ```ts
 import { parseCliToolTimings } from '../driver.js';
@@ -438,9 +438,9 @@ describe('parseCliToolTimings', () => {
 });
 ```
 
-- [ ] **Step 13: Run — expect FAIL**
+- [x] **Step 13: Run — expect FAIL**
 
-- [ ] **Step 14: Add `parseCliToolTimings` to `driver.ts`**
+- [x] **Step 14: Add `parseCliToolTimings` to `driver.ts`**
 
 ```ts
 export interface ToolTiming {
@@ -491,11 +491,11 @@ export async function parseCliToolTimings(eventsPath: string): Promise<Record<st
 }
 ```
 
-- [ ] **Step 15: Re-run — expect PASS**
+- [x] **Step 15: Re-run — expect PASS**
 
 ### Step 16 — Extend `TimingsFile` in `packages/core/src/perf.ts`
 
-- [ ] **Step 16: Add the new fields to the `TimingsFile` interface**
+- [x] **Step 16: Add the new fields to the `TimingsFile` interface**
 
 Find the existing interface (search for `export interface TimingsFile`) and extend:
 
@@ -521,13 +521,13 @@ export interface TimingsFile {
 }
 ```
 
-- [ ] **Step 17: Vendor the same change into the worker copy at `arandano-worker/lib/src/perf.ts`**
+- [x] **Step 17: Vendor the same change into the worker copy at `arandano-worker/lib/src/perf.ts`**
 
 (The worker has its own `perf.ts`. Mirror the field additions there.)
 
 ### Step 18 — Worker `driver.ts` writes the new fields into `timings.json`
 
-- [ ] **Step 18: Update the post-run patch in `driver.ts`**
+- [x] **Step 18: Update the post-run patch in `driver.ts`**
 
 Find the existing block that patches `cli_tool_calls`/`cli_commits`/`cli_budget_exceeded`. Replace with:
 
@@ -556,7 +556,7 @@ Mirror the same change in the `fail(...)` helper that also patches timings.json.
 
 ### Step 19 — Extend `BenchRow` and CSV header in `packages/executors-docker/src/benchCsv.ts`
 
-- [ ] **Step 19: Add columns to `BenchRow`, `HEADER`, and `toCsvLine`**
+- [x] **Step 19: Add columns to `BenchRow`, `HEADER`, and `toCsvLine`**
 
 Add fields (in this order, appended at the end so existing rows still parse):
 
@@ -578,7 +578,7 @@ Update `toCsvLine` to emit these eight fields at the end.
 
 ### Step 20 — `DockerExecutor.mergeBenchRow` populates the new fields
 
-- [ ] **Step 20: Update `mergeBenchRow` in `DockerExecutor.ts`**
+- [x] **Step 20: Update `mergeBenchRow` in `DockerExecutor.ts`**
 
 Within the `const row: BenchRow = { ... }` literal, add:
 
@@ -595,13 +595,13 @@ host_gitnexus_skipped: 0,       // T5 will set this; placeholder for now
 
 ### Step 21 — Update `arandano bench` to render new columns
 
-- [ ] **Step 21: In `packages/cli/src/commands/bench.ts`**
+- [x] **Step 21: In `packages/cli/src/commands/bench.ts`**
 
 In `Row`, `parseCsv`, and `NUM_COLS`, add the 8 new fields. In the render loop, list them after `cli_commits`. Token fields use `fmtVal` (integer formatting). Gate fields use `fmt` (`.../1000` for ms). Reuse/skipped use `fmtVal`.
 
 ### Step 22 — Add `--by-tool` flag to `bench`
 
-- [ ] **Step 22: Add the new view in `bench.ts`**
+- [x] **Step 22: Add the new view in `bench.ts`**
 
 ```ts
 // In the flags definition:
@@ -618,7 +618,7 @@ Bash          8       21300      2662
 Grep          6       720        120
 ```
 
-- [ ] **Step 23: Test rendering** in `packages/cli/src/__tests__/bench.test.ts` — add a fixture-driven test:
+- [x] **Step 23: Test rendering** in `packages/cli/src/__tests__/bench.test.ts` — add a fixture-driven test:
 
 ```ts
 it('parses cli_input_tokens column', () => {
@@ -634,7 +634,7 @@ it('parses cli_input_tokens column', () => {
 
 ### Step 24 — Build and test both repos
 
-- [ ] **Step 24: Build worker**
+- [x] **Step 24: Build worker**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker\lib"
@@ -644,7 +644,7 @@ npm test
 
 All tests pass.
 
-- [ ] **Step 25: Build monorepo**
+- [x] **Step 25: Build monorepo**
 
 ```powershell
 cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano"
@@ -656,7 +656,7 @@ All tests pass.
 
 ### Step 26 — Commit and push worker
 
-- [ ] **Step 26: Commit worker**
+- [x] **Step 26: Commit worker**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-worker
@@ -665,7 +665,7 @@ git commit -m ":sparkles: feat(driver): event envelope + token + per-tool timing
 git push origin main
 ```
 
-- [ ] **Step 27: Wait for image build**
+- [x] **Step 27: Wait for image build**
 
 ```powershell
 gh run watch $(gh run list --workflow=release.yml --repo nmunozsi/arandano-worker --limit 1 --json databaseId --jq '.[0].databaseId') --repo nmunozsi/arandano-worker
@@ -675,7 +675,7 @@ Image must finish with `success`.
 
 ### Step 28 — Commit monorepo
 
-- [ ] **Step 28: Commit monorepo**
+- [x] **Step 28: Commit monorepo**
 
 ```bash
 cd C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano
@@ -685,7 +685,7 @@ git commit -m ":sparkles: feat(bench): token + per-tool timing columns and arand
 
 ### Step 29 — Run measurement (baseline with new metrics)
 
-- [ ] **Step 29: Reset state and run the three-helpers plan**
+- [x] **Step 29: Reset state and run the three-helpers plan**
 
 Reset `.arandano/state.json` of node-ts-toy to keep only AS1/AS2 completed. Then:
 
@@ -696,7 +696,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 Expect: 4 tasks complete (T4, T5, T6, T-architect).
 
-- [ ] **Step 30: Capture bench output**
+- [x] **Step 30: Capture bench output**
 
 ```powershell
 node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" bench
@@ -707,11 +707,11 @@ Verify `cli_tool_calls > 0` for T4/T5/T6.
 
 ### Step 31 — Append T1 row to Results table in plan.md
 
-- [ ] **Step 31: Fill in the "+ T1 instrumentation" row** in `docs/perf-optimization/plans/2026-05-22-aggressive-optimization/plan.md` Results table with the median of T4+T5.
+- [x] **Step 31: Fill in the "+ T1 instrumentation" row** in `docs/perf-optimization/plans/2026-05-22-aggressive-optimization/plan.md` Results table with the median of T4+T5.
 
-- [ ] **Step 32: Tick T1 in plan.md task list**
+- [x] **Step 32: Tick T1 in plan.md task list**
 
-- [ ] **Step 33: Commit results**
+- [x] **Step 33: Commit results**
 
 ```bash
 git add docs/perf-optimization/plans/2026-05-22-aggressive-optimization/plan.md

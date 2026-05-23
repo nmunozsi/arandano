@@ -29,7 +29,7 @@
 
 ---
 
-- [ ] **Step 1: User runs `setx` in PowerShell**
+- [x] **Step 1: User runs `setx` in PowerShell**
 
 ```powershell
 setx ANTHROPIC_API_KEY "<paste-your-key-here>"
@@ -38,9 +38,9 @@ setx GH_TOKEN "<paste-your-token-here>"
 
 Both commands print `SUCCESS: Specified value was saved.` `setx` does **not** affect the current shell; a new one is required.
 
-- [ ] **Step 2: User opens a fresh PowerShell window**
+- [x] **Step 2: User opens a fresh PowerShell window**
 
-- [ ] **Step 3: User verifies existence without echoing values**
+- [x] **Step 3: User verifies existence without echoing values**
 
 Run:
 
@@ -59,7 +59,7 @@ GH_TOKEN: set
 
 If either reads `MISSING`, re-run Step 1 and re-open PowerShell.
 
-- [ ] **Step 4: Append `## Secrets` section to `CLAUDE.md`**
+- [x] **Step 4: Append `## Secrets` section to `CLAUDE.md`**
 
 Open `C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\CLAUDE.md` and append at the end (after the existing architect section):
 
@@ -79,14 +79,14 @@ After T0 of the perf-optimization plan, every measurement step is executable by 
 via `node ...packages/cli/dist/bin.js run --plan ...` — no secret handling required from Claude.
 ```
 
-- [ ] **Step 5: Commit the CLAUDE.md change**
+- [x] **Step 5: Commit the CLAUDE.md change**
 
 ```bash
 git add CLAUDE.md
 git commit -m ":memo: docs(claude): add secrets section enabling autonomous measurement runs"
 ```
 
-- [ ] **Step 6: Verify Claude can launch a worker without handling secrets**
+- [x] **Step 6: Verify Claude can launch a worker without handling secrets**
 
 Run a single existing measurement task from this directory:
 
@@ -97,7 +97,7 @@ node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.j
 
 `doctor` should print `OK` lines for env-var presence checks. (If `doctor` doesn't validate env vars yet, this is informational — proceed if the command exits 0.)
 
-- [ ] **Step 7: Tick the T0 checkbox in `plan.md`**
+- [x] **Step 7: Tick the T0 checkbox in `plan.md`**
 
 Edit `docs/perf-optimization/plans/2026-05-22-aggressive-optimization/plan.md` and change `- [ ] [T0 — ...]` to `- [x] [T0 — ...]`. Commit:
 

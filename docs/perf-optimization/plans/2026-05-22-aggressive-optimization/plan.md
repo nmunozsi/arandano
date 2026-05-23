@@ -84,7 +84,7 @@ CLAUDE.md                                      MOD — add ## Secrets section (T
 
 ## Tasks
 
-- [ ] [T0 — Prerequisites: secrets + CLAUDE.md rule (user setup)](T0-prerequisites.md)
+- [x] [T0 — Prerequisites: secrets + CLAUDE.md rule (user setup)](T0-prerequisites.md)
 - [ ] [T1 — Instrumentation foundation: stream-json schema fix + token tracking + per-tool view](T1-instrumentation-foundation.md)
 - [ ] [T2 — Parallelize gates with serial escape hatch](T2-parallelize-gates.md)
 - [ ] [T3 — Exercise context injection + trim Claude tool surface](T3-context-injection-and-tool-trim.md)

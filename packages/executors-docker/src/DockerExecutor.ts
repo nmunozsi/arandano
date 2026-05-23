@@ -201,6 +201,14 @@ export class DockerExecutor implements Executor {
       worker_push_ms: worker['push_and_pr'] ?? 0,
       cli_tool_calls: workerTimings?.cli_tool_calls ?? 0,
       cli_commits: workerTimings?.cli_commits ?? 0,
+      cli_input_tokens: workerTimings?.cli_input_tokens ?? 0,
+      cli_output_tokens: workerTimings?.cli_output_tokens ?? 0,
+      cli_cache_read_tokens: workerTimings?.cli_cache_read_tokens ?? 0,
+      cli_cache_creation_tokens: workerTimings?.cli_cache_creation_tokens ?? 0,
+      gates_parallel_ms: workerTimings?.gates_parallel_ms ?? 0,
+      gates_serial_sum_ms: workerTimings?.gates_serial_sum_ms ?? 0,
+      host_container_reuse: 0,
+      host_gitnexus_skipped: 0,
     };
 
     // Rewrite the merged timings.json on disk with host data added.
