@@ -15,6 +15,10 @@ export interface TaskRun {
   workdir: string;
   timeoutMs: number;
   mcpServers: string[];
+  injectContext?: string[]; // paths to inject (relative to workdir)
+  cliBudgetMs?: number; // advisory cli time budget; worker warns if exceeded
+  gitnexusStatus?: 'rebuilt' | 'cache-hit' | 'failed' | 'skipped' | 'not-applicable';
+  gitnexusPrewarmMs?: number;
 }
 
 export type ExitReason =

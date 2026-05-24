@@ -17,94 +17,72 @@
 > └── T10-summary-report.md
 > ```
 
-## Task 6: Re-brainstorm based on baseline data (decision gate, no code)
+## Task 6: Decision gate — revised improvements (no code)
 
-**Goal:** Use the baseline measurements to confirm, drop, or replace the three tentative improvements. The output is a written addendum at the bottom of this plan; T7+ then implement that list.
+**Status: COMPLETE** (2026-05-22)
 
-**Files:**
+**Goal:** Use the baseline measurements to confirm, drop, or replace the three tentative improvements and produce a written addendum in `plan.md`. The addendum at the bottom of `plan.md` is the deliverable; T7–T9 implement that list.
 
-- Modify: `docs/plans/2026-05-14-phase-3-performance.md` (append the addendum section)
+---
 
-- [ ] **Step 1: Read the baseline**
+- [x] **Step 1: Read the baseline**
 
 ```bash
 cat docs/bench/baseline-three-helpers.csv
 ```
 
-For each row, compute (or just eyeball from `arandano bench`) what share each phase contributes to `total_ms`.
+Baseline (`docs/bench/baseline-three-helpers.csv`, N=2 runs: T4 and T5 of three-helpers):
 
-- [ ] **Step 2: For each tentative improvement, classify it**
+| Phase             | T4 (ms)   | T5 (ms) | Median (ms) | % of total |
+| ----------------- | --------- | ------- | ----------- | ---------- |
+| total_ms          | 1,057,110 | 954,901 | 1,006,005   | 100%       |
+| host_pull_ms      | 1,345     | 1,336   | 1,341       | 0.1%       |
+| host_clone_ms     | 518       | 519     | 519         | 0.1%       |
+| host_wait_ms      | 1,054,772 | 952,528 | 1,003,650   | 99.8%      |
+| worker_install_ms | 64,482    | 64,200  | 64,341      | 6.4%       |
+| worker_cli_ms     | 686,578   | 601,840 | 644,209     | 64.0%      |
+| worker_gates_ms   | 299,391   | 281,562 | 290,477     | 28.9%      |
+| worker_push_ms    | 1,417     | 2,041   | 1,729       | 0.2%       |
 
-For each of A (npm cache volume), B (skip docker pull), C (pre-bake gate tools):
+- [x] **Step 2: Classify original improvements**
 
-- **CONFIRM** — the affected phase is >5% of total in the median row. Keep as-is in T7/T8/T9.
-- **MODIFY** — the affected phase is >5% but the proposed fix is unlikely to recoup most of it. Note the modified approach.
-- **DROP** — the affected phase is ≤5% of total. The improvement is not worth the dev cost. Replace with a new candidate.
+| Improvement        | Target column     | % of total | Decision |
+| ------------------ | ----------------- | ---------- | -------- |
+| A — npm cache      | worker_install_ms | 6.4%       | CONFIRM  |
+| B — skip pull      | host_pull_ms      | 0.1%       | DROP     |
+| C — pre-bake tools | worker_install_ms | 6.4%       | DROP     |
 
-Mapping from improvement to its target column:
+Rationale:
 
-| Improvement        | Target column(s)                     |
-| ------------------ | ------------------------------------ |
-| A — npm cache      | `worker_install_ms`                  |
-| B — skip pull      | `host_pull_ms`                       |
-| C — pre-bake tools | `worker_install_ms` (and overlaps A) |
+- **A confirmed** — 6.4% is above the 5% threshold; a warm npm cache eliminates most of install time.
+- **B dropped** — 0.1% is negligible. Not worth the digest-comparison complexity.
+- **C dropped** — Overlaps with A and doesn't address the real bottleneck (`worker_cli_ms`).
 
-- [ ] **Step 3: Look for unexpected large costs**
+- [x] **Step 3: Identify unexpected large costs**
 
-For each phase that contributes >10% of total and isn't already targeted by A/B/C, write a one-line note describing what could reduce it. Common candidates to consider:
+`worker_cli_ms` at 64% is far larger than anticipated. Two observations from the baseline runs:
 
-- `host_wait_ms` (Claude CLI runtime is most of this; little leverage)
-- `worker_cli_ms` (same as above — model latency and tool-call count)
-- `worker_gates_ms` (parallel gates were de-scoped, but could be reinstated)
-- `host_clone_ms` (could use `git worktree` instead of `clone --local`)
-- `worker_push_ms` (gh PR create latency)
+1. Both tasks made **4 commits** instead of the minimum 2 — Claude hit a rework loop (vitest coverage config fix + greet test for coverage threshold). Each extra iteration costs API round trips.
+2. Claude must discover the codebase structure via tool calls on every run; there is no pre-injected context.
 
-- [ ] **Step 4: Append the addendum to this plan**
+New improvements identified:
 
-Add the following section at the bottom of `docs/plans/2026-05-14-phase-3-performance.md` (before any horizontal rule that ends the file):
+- **D (parallelize quality gates)** — `worker_gates_ms` = 29% of total. Sequential gates (format → lint → typecheck → test → coverage → commitMsg) could run in parallel, cutting this from ~290s to ~60–80s (~21% total savings).
+- **E (per-task model selection)** — A faster, cheaper model (e.g., Haiku) for simple add-helper tasks could cut `worker_cli_ms` significantly. Requires `model:` frontmatter.
+- **F (selective context injection)** — Pre-injecting known source files into the prompt reduces Claude's file-discovery tool calls. Requires `inject_context:` frontmatter.
 
-```markdown
----
+**Note on ≥40% target:** Eliminating all of `worker_install_ms` + `worker_gates_ms` saves only ~35%. Reaching ≥40% requires reducing `worker_cli_ms`, which is why E and F are critical. Parallelizing gates (D) is deferred to Phase 4 (moderate complexity); E and F are pursued in T8.
 
-## Improvements to pursue (chosen at T6 on YYYY-MM-DD)
+- [x] **Step 4: Write the addendum to `plan.md`**
 
-**Baseline (median across T4/T5/T6):**
+The addendum "Improvements to pursue (chosen at T6 on 2026-05-22)" is written at the bottom of `plan.md`. Revised approach is a three-layer system:
 
-| Phase             | ms     | % of total |
-| ----------------- | ------ | ---------- |
-| total_ms          | XXXXXX | 100%       |
-| host_pull_ms      | XXXX   | X%         |
-| host_clone_ms     | XXXX   | X%         |
-| host_wait_ms      | XXXXXX | X%         |
-| worker_install_ms | XXXXXX | X%         |
-| worker_cli_ms     | XXXXXX | X%         |
-| worker_gates_ms   | XXXX   | X%         |
-| worker_push_ms    | XXXX   | X%         |
+1. Instrumentation (T7)
+2. Optimizations: A + E + F (T8)
+3. Control: cli_budget_ms (T9)
 
-**Decisions:**
+- [x] **Step 5: Commit**
 
-- **A (npm cache volume)** — CONFIRM / MODIFY / DROP. Rationale: …
-- **B (skip docker pull)** — CONFIRM / MODIFY / DROP. Rationale: …
-- **C (pre-bake gate tools)** — CONFIRM / MODIFY / DROP. Rationale: …
-
-**Newly identified improvements (if any):**
-
-- D — <name>: <target phase>, <expected savings>, <approach>.
-
-**Final ordered list for T7/T8/T9:**
-
-1. …
-2. …
-3. …
-```
-
-Fill in every `XXX` and `…`. No placeholders left.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add docs/plans/2026-05-14-phase-3-performance.md
-git commit -m "docs(plans): T6 decision gate — confirm improvements based on baseline"
-```
+The addendum is committed as part of the plan.md update that also marks T5/T6 complete and rewrites T7–T9 task files.
 
 ---

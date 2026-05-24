@@ -15,6 +15,8 @@ export interface TaskFrontmatter {
   tests?: string[];
   acceptance?: string[];
   quality?: Partial<QualitySpec>;
+  inject_context?: string[]; // relative paths to inject into prompt
+  cli_budget_ms?: number; // reserved for T9
 }
 
 export interface TaskMd {

@@ -41,15 +41,28 @@ export async function runOne(opts: RunOneOpts): Promise<ExitResult> {
     workdir: cfg.executor.docker?.workdir ?? '/workspace',
     timeoutMs: (taskMd.frontmatter.timeout_minutes ?? cfg.batching.timeout_minutes) * 60_000,
     mcpServers: taskMd.frontmatter.mcp ?? [],
+    ...(taskMd.frontmatter.inject_context !== undefined
+      ? { injectContext: taskMd.frontmatter.inject_context }
+      : {}),
+    ...(taskMd.frontmatter.cli_budget_ms !== undefined
+      ? { cliBudgetMs: taskMd.frontmatter.cli_budget_ms }
+      : {}),
   };
 
   // Host-side gitnexus cache pre-warm — soft-fail.
+  let gitnexusStatus: 'rebuilt' | 'cache-hit' | 'failed' | 'skipped' | 'not-applicable' =
+    'not-applicable';
+  let gitnexusPrewarmMs = 0;
   if (taskRun.mcpServers.includes('gitnexus')) {
     const { ensureGitnexusCacheHost } = await import('../mcp/cacheHost.js');
-    await ensureGitnexusCacheHost(projectRoot, {
+    const t0 = Date.now();
+    gitnexusStatus = await ensureGitnexusCacheHost(projectRoot, {
       log: (line) => process.stderr.write(line + '\n'),
     });
+    gitnexusPrewarmMs = Date.now() - t0;
   }
+  taskRun.gitnexusStatus = gitnexusStatus;
+  taskRun.gitnexusPrewarmMs = gitnexusPrewarmMs;
 
   const store = new StateStore(join(projectRoot, '.arandano', 'state.json'));
   await store.update((state) => {

@@ -19,54 +19,58 @@
 
 ## Task 10: Summary report
 
-**Goal:** Update this plan with the final Results table and the conclusion of whether the ≥40% wall-time target was met.
+**Goal:** Fill in the Results section of `plan.md` with the final measured deltas across T7, T8, and T9. Record whether the ≥40% wall-time target was met, and if not, explain what remains.
 
-**Files:**
+---
 
-- Modify: `docs/plans/2026-05-14-phase-3-performance.md`
+- [ ] **Step 1: Generate the final bench output**
 
-- [ ] **Step 1: Generate a final summary**
-
-```bash
-node packages/cli/dist/bin.js bench --last 12
+```powershell
+cd "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano-examples\node-ts-toy"
+node "C:\Users\nmuno\OneDrive\Documentos\Frutas\arandano\packages\cli\dist\bin.js" bench --last 12
 ```
 
-Capture the output.
+Capture the output. Identify the median rows for: baseline runs (before T7), T7 post-run, T8 post-run.
 
-- [ ] **Step 2: Fill in the Results section**
+- [ ] **Step 2: Fill in the Results section in `plan.md`**
 
-Make the Results section in `docs/plans/2026-05-14-phase-3-performance.md` complete:
+Append (or replace the TBD table from T8) with:
 
 ```markdown
 ## Results
 
-### Per-improvement deltas (median of 3 tasks)
+### Per-improvement deltas (median of two tasks per run)
 
-| Step            | total_ms  | worker_install_ms | host_pull_ms | worker_gates_ms |
-| --------------- | --------- | ----------------- | ------------ | --------------- |
-| Baseline        | XXX       | XXX               | XXX          | XXX             |
-| + Improvement A | XXX (-Y%) | XXX (-Y%)         | XXX          | XXX             |
-| + Improvement B | XXX (-Y%) | XXX               | XXX (-Y%)    | XXX             |
-| + Improvement C | XXX (-Y%) | XXX (-Y%)         | XXX          | XXX             |
+| Step             | total_ms | worker_install_ms | worker_cli_ms | worker_gates_ms | cli_tool_calls | cli_commits |
+| ---------------- | -------- | ----------------- | ------------- | --------------- | -------------- | ----------- |
+| Baseline (T5–T6) | TBD      | TBD               | TBD           | TBD             | (unavailable)  | (unavail.)  |
+| + T7 instrument  | TBD      | TBD               | TBD           | TBD             | TBD            | TBD         |
+| + T8 optimiz.    | TBD      | TBD               | TBD           | TBD             | TBD            | TBD         |
 
 ### Conclusion
 
-- Per-task wall time: baseline = X min, final = Y min. **Target was ≥40% reduction; achieved Z%.**
-- 3-task plan wall time: baseline = X min, final = Y min.
-- If target was not met: <one-paragraph explanation of which phases are still the dominant cost and what the next plan should attack.>
+- Per-task wall time: baseline = X min → final = Y min. **Achieved Z% reduction** (target ≥40%).
+- `cli_tool_calls` per task: TBD (provides ongoing visibility into Claude efficiency).
+- `cli_commits` per task: TBD (rework loop indicator; >2 commits for a simple task signals prompt or context issue).
+- If ≥40% target was not met: explain which phases remain dominant and propose next plan's focus.
 ```
 
-Replace every `XXX` and `Y` with real numbers. No placeholders.
+Replace every TBD with real numbers.
 
-- [ ] **Step 3: Update the Phase 2 plan's footer**
+- [ ] **Step 3: Verify exit criteria**
 
-In `docs/plans/2026-05-08-phase-2-dag-reviewer-python-go.md` (the most recent already-renamed reference in Phase 4-or-later if Task 0 renamed it), confirm the cross-reference to "Phase 3" points to performance, not the renumbered Phase 4.
+Go through the exit criteria checklist in `plan.md` and confirm each item is `[x]`. Items likely still open:
+
+- `Phases 4-9 plan files renamed; cross-references updated` — verify or rename.
+- `Per-task wall time dropped ≥40% OR Results section explains why` — fill in the conclusion.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add docs/plans/2026-05-14-phase-3-performance.md
-git commit -m "docs(plans): Phase 3 results — Z% wall-time reduction"
+git add docs/perf-instrumentation/plans/instrumentation/plan.md
+git commit -m ":memo: docs(plans): Phase 3 results — Z% wall-time reduction"
 ```
+
+(Replace Z with the real number.)
 
 ---

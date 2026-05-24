@@ -1,5 +1,50 @@
 {
   "commands": {
+    "bench": {
+      "aliases": [],
+      "args": {},
+      "description": "Summarise .arandano/bench.csv with per-phase median and p95.",
+      "flags": {
+        "task": {
+          "description": "filter to a single task id",
+          "name": "task",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "plan": {
+          "description": "reserved — filter by plan slug (not yet implemented)",
+          "name": "plan",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "last": {
+          "description": "only consider the last N rows",
+          "name": "last",
+          "default": 0,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "by-tool": {
+          "description": "show per-tool elapsed time aggregated from cli_tool_timings in timings.json files",
+          "name": "by-tool",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "bench",
+      "pluginAlias": "@arandano/cli",
+      "pluginName": "@arandano/cli",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": ["dist", "commands", "bench.js"]
+    },
     "cleanup": {
       "aliases": [],
       "args": {},

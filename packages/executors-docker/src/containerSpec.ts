@@ -48,13 +48,21 @@ export function buildContainerSpec(opts: BuildContainerSpecOpts): ContainerSpec 
     env.push(`ARANDANO_MCP_SERVERS=${task.mcpServers.join(',')}`);
   }
 
+  if (task.injectContext && task.injectContext.length > 0) {
+    env.push(`ARANDANO_INJECT_CONTEXT=${task.injectContext.join(':')}`);
+  }
+
+  if (task.cliBudgetMs !== undefined) {
+    env.push(`ARANDANO_CLI_BUDGET_MS=${task.cliBudgetMs}`);
+  }
+
   return {
     Image: image,
     WorkingDir: task.workdir,
     User: '1001:1001',
     Env: env,
     HostConfig: {
-      Binds: [`${projectRoot}:${task.workdir}`],
+      Binds: [`${projectRoot}:${task.workdir}`, 'arandano-npm-cache:/home/worker/.npm'],
       AutoRemove: false,
     },
   };

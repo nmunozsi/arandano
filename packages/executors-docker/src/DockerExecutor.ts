@@ -1,12 +1,14 @@
 import type { Executor, ExitResult, Handle, TaskRun } from '@arandano/core';
-import { runArtifacts, runFolder } from '@arandano/core';
+import { runArtifacts, runFolder, PerfRecorder, readTimingsJson } from '@arandano/core';
 import { buildContainerSpec } from './containerSpec.js';
 import { defaultClient, type DockerClient } from './client.js';
-import { cp, rm } from 'node:fs/promises';
+import { WarmContainerPool } from './warmContainerPool.js';
+import { cp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
+import { appendBenchRow, type BenchRow } from './benchCsv.js';
 
 const exec = promisify(execFile);
 
@@ -19,6 +21,7 @@ export interface DockerExecutorOpts {
   hostEnv?: Record<string, string | undefined>;
   now?: () => Date;
   cloneProject?: CloneProjectFn;
+  warmPoolSize?: number;
 }
 
 type Container = Awaited<ReturnType<DockerClient['createContainer']>>;
@@ -26,9 +29,21 @@ type Container = Awaited<ReturnType<DockerClient['createContainer']>>;
 export class DockerExecutor implements Executor {
   private readonly running = new Map<
     string,
-    { containerId: string; container: Container; folder: string; cloneDir: string }
+    {
+      containerId: string;
+      container: Container;
+      folder: string;
+      cloneDir: string;
+      perf: PerfRecorder;
+      startedAt: Date;
+      gitnexusStatus?: string;
+      gitnexusPrewarmMs: number;
+      slotId?: string;
+      isWarm: boolean;
+    }
   >();
   private readonly opts: DockerExecutorOpts;
+  private readonly pool: WarmContainerPool | null;
 
   constructor(opts: DockerExecutorOpts) {
     this.opts = {
@@ -38,15 +53,21 @@ export class DockerExecutor implements Executor {
       cloneProject: defaultCloneProject,
       ...opts,
     };
+    this.pool =
+      (this.opts.warmPoolSize ?? 0) > 0
+        ? new WarmContainerPool({
+            client: this.opts.client!,
+            cloneProject: this.opts.cloneProject!,
+            maxSlots: this.opts.warmPoolSize!,
+          })
+        : null;
   }
 
   async start(task: TaskRun): Promise<Handle> {
     const folder = runFolder({ taskId: task.taskId, date: this.opts.now!() });
+    const perf = new PerfRecorder();
+    const startedAt = this.opts.now!();
 
-    // Create a local clone of the project so each parallel task has its own
-    // .git directory — eliminates the HEAD race when two containers share the
-    // same workspace bind-mount.
-    const cloneDir = join(tmpdir(), `arandano-task-${task.taskId}-${Date.now()}`);
     let remoteUrl = '';
     try {
       const { stdout } = await exec('git', ['remote', 'get-url', 'origin'], {
@@ -56,24 +77,75 @@ export class DockerExecutor implements Executor {
     } catch {
       // no remote configured — local-only repo, clone still works
     }
-    await this.opts.cloneProject!(this.opts.projectRoot, cloneDir, remoteUrl);
-    // Carry gitignored MCP cache into the clone so the worker can verify it.
-    await cp(join(this.opts.projectRoot, '.gitnexus'), join(cloneDir, '.gitnexus'), {
-      recursive: true,
-    }).catch(() => {});
 
-    const spec = buildContainerSpec({
-      task,
-      image: this.opts.image,
-      projectRoot: cloneDir,
-      runFolder: folder,
-      hostEnv: this.opts.hostEnv!,
+    let cloneDir: string;
+    let containerId: string;
+    let container: Container;
+    let slotId: string | undefined;
+    let isWarm = false;
+
+    if (this.pool) {
+      const slot = await this.pool.acquire({
+        image: this.opts.image,
+        projectRoot: this.opts.projectRoot,
+        remoteUrl,
+        buildSpec: (workdir) =>
+          buildContainerSpec({
+            task,
+            image: this.opts.image,
+            projectRoot: workdir,
+            runFolder: folder,
+            hostEnv: this.opts.hostEnv!,
+          }),
+      });
+      cloneDir = slot.workdir;
+      containerId = slot.containerId;
+      container = slot.container;
+      slotId = slot.slotId;
+      isWarm = slot.isWarm;
+    } else {
+      // Create a local clone of the project so each parallel task has its own
+      // .git directory — eliminates the HEAD race when two containers share the
+      // same workspace bind-mount.
+      cloneDir = join(tmpdir(), `arandano-task-${task.taskId}-${Date.now()}`);
+      const stopClone = perf.start('clone');
+      await this.opts.cloneProject!(this.opts.projectRoot, cloneDir, remoteUrl);
+      // Carry gitignored MCP cache into the clone so the worker can verify it.
+      await cp(join(this.opts.projectRoot, '.gitnexus'), join(cloneDir, '.gitnexus'), {
+        recursive: true,
+      }).catch(() => {});
+      stopClone();
+
+      const spec = buildContainerSpec({
+        task,
+        image: this.opts.image,
+        projectRoot: cloneDir,
+        runFolder: folder,
+        hostEnv: this.opts.hostEnv!,
+      });
+      const stopPull = perf.start('pull');
+      await this.opts.client!.pull(this.opts.image);
+      stopPull();
+      const stopCreate = perf.start('create');
+      container = await this.opts.client!.createContainer(spec as unknown);
+      await container.start();
+      stopCreate();
+      containerId = container.id;
+    }
+
+    const id = `${task.taskId}::${containerId}`;
+    this.running.set(id, {
+      containerId,
+      container,
+      folder,
+      cloneDir,
+      perf,
+      startedAt,
+      ...(task.gitnexusStatus !== undefined ? { gitnexusStatus: task.gitnexusStatus } : {}),
+      gitnexusPrewarmMs: task.gitnexusPrewarmMs ?? 0,
+      ...(slotId !== undefined ? { slotId } : {}),
+      isWarm,
     });
-    await this.opts.client!.pull(this.opts.image);
-    const container = await this.opts.client!.createContainer(spec as unknown);
-    await container.start();
-    const id = `${task.taskId}::${container.id}`;
-    this.running.set(id, { containerId: container.id, container, folder, cloneDir });
     // Stream container logs live to host stdout (Docker multiplex: 8-byte header + payload)
     void container
       .logs({ stdout: true, stderr: true, follow: true })
@@ -94,14 +166,28 @@ export class DockerExecutor implements Executor {
           void entry.container.stop({ t: 5 });
         }, opts.timeoutMs)
       : null;
+    const stopWait = entry.perf.start('wait');
     try {
-      const { StatusCode } = await entry.container.wait();
+      const { StatusCode } = await entry.container.wait().finally(() => stopWait());
 
       // Copy the run folder from the task clone back to the main project directory
       // so the orchestrator and arandano status can find result.json / journal.md.
+      const stopCopy = entry.perf.start('copy_artifacts');
       const cloneRunDir = join(entry.cloneDir, '.arandano', 'runs', entry.folder);
       const mainRunDir = join(this.opts.projectRoot, '.arandano', 'runs', entry.folder);
       await cp(cloneRunDir, mainRunDir, { recursive: true }).catch(() => {});
+      stopCopy();
+
+      // Merge worker timings and append bench.csv row (soft-fail)
+      await this.mergeBenchRow({
+        taskId: this.taskIdFromHandle(h.id),
+        folder: entry.folder,
+        startedAt: entry.startedAt,
+        hostPerf: entry.perf,
+        ...(entry.gitnexusStatus !== undefined ? { gitnexusStatus: entry.gitnexusStatus } : {}),
+        gitnexusPrewarmMs: entry.gitnexusPrewarmMs,
+        isWarm: entry.isWarm,
+      }).catch(() => {});
 
       const artifacts = runArtifacts({ projectRoot: this.opts.projectRoot, folder: entry.folder });
       const reason = StatusCode === 0 ? 'ok' : 'error';
@@ -113,10 +199,87 @@ export class DockerExecutor implements Executor {
       };
     } finally {
       if (timer) clearTimeout(timer);
-      await entry.container.remove({ force: true }).catch(() => {});
-      await rm(entry.cloneDir, { recursive: true, force: true }).catch(() => {});
+      if (this.pool && entry.slotId !== undefined) {
+        const resetOk = await execReset(entry.container);
+        await this.pool.release({ slotId: entry.slotId, resetOk });
+      } else {
+        await entry.container.remove({ force: true }).catch(() => {});
+        await rm(entry.cloneDir, { recursive: true, force: true }).catch(() => {});
+      }
       this.running.delete(h.id);
     }
+  }
+
+  private taskIdFromHandle(id: string): string {
+    // handle id is `${taskId}::${containerId}`
+    return id.split('::', 1)[0]!;
+  }
+
+  private async mergeBenchRow(opts: {
+    taskId: string;
+    folder: string;
+    startedAt: Date;
+    hostPerf: PerfRecorder;
+    gitnexusStatus?: string;
+    gitnexusPrewarmMs: number;
+    isWarm: boolean;
+  }): Promise<void> {
+    const timingsPath = join(
+      this.opts.projectRoot,
+      '.arandano',
+      'runs',
+      opts.folder,
+      'timings.json',
+    );
+    const workerTimings = await readTimingsJson(timingsPath).catch(() => null);
+    const host = opts.hostPerf.asObject();
+    const worker = workerTimings?.worker ?? {};
+
+    if (workerTimings?.cli_budget_exceeded) {
+      console.warn(
+        `[arandano] task ${opts.taskId}: cli_budget_ms exceeded (worker_cli_ms=${workerTimings.worker?.['cli'] ?? '?'}ms)`,
+      );
+    }
+
+    const workerGatesMs = Object.entries(worker)
+      .filter(([k]) => k.startsWith('gate.'))
+      .reduce((a, [, v]) => a + v, 0);
+
+    const row: BenchRow = {
+      timestamp: opts.startedAt.toISOString(),
+      task_id: opts.taskId,
+      stack: workerTimings?.stack ?? 'unknown',
+      image_sha: this.opts.image,
+      total_ms: opts.hostPerf.totalMs(),
+      host_gitnexus_prewarm_ms: opts.gitnexusPrewarmMs,
+      host_pull_ms: host['pull'] ?? 0,
+      host_clone_ms: host['clone'] ?? 0,
+      host_wait_ms: host['wait'] ?? 0,
+      worker_install_ms: worker['install'] ?? 0,
+      worker_cli_ms: worker['cli'] ?? 0,
+      worker_gates_ms: workerGatesMs,
+      worker_push_ms: worker['push_and_pr'] ?? 0,
+      cli_tool_calls: workerTimings?.cli_tool_calls ?? 0,
+      cli_commits: workerTimings?.cli_commits ?? 0,
+      cli_input_tokens: workerTimings?.cli_input_tokens ?? 0,
+      cli_output_tokens: workerTimings?.cli_output_tokens ?? 0,
+      cli_cache_read_tokens: workerTimings?.cli_cache_read_tokens ?? 0,
+      cli_cache_creation_tokens: workerTimings?.cli_cache_creation_tokens ?? 0,
+      gates_parallel_ms: workerTimings?.gates_parallel_ms ?? 0,
+      gates_serial_sum_ms: workerTimings?.gates_serial_sum_ms ?? 0,
+      host_container_reuse: opts.isWarm ? 1 : 0,
+      host_gitnexus_skipped:
+        opts.gitnexusStatus === 'cache-hit' ? 1 : opts.gitnexusStatus === 'not-applicable' ? 2 : 0,
+    };
+
+    // Rewrite the merged timings.json on disk with host data added.
+    if (workerTimings) {
+      const merged = { ...workerTimings, host, total_ms: opts.hostPerf.totalMs() };
+      await writeFile(timingsPath, JSON.stringify(merged, null, 2), 'utf8');
+    }
+
+    const csvPath = join(this.opts.projectRoot, '.arandano', 'bench.csv');
+    await appendBenchRow(csvPath, row);
   }
 
   async *logs(h: Handle, opts?: { follow: boolean }): AsyncIterable<string> {
@@ -137,11 +300,44 @@ export class DockerExecutor implements Executor {
     if (!entry) return;
     await entry.container.stop({ t: 5 }).catch(() => {});
   }
+
+  async shutdown(): Promise<void> {
+    await this.pool?.shutdown();
+  }
 }
 
 async function defaultCloneProject(src: string, dst: string, remoteUrl: string): Promise<void> {
   await exec('git', ['clone', '--local', '--no-single-branch', src, dst]);
   if (remoteUrl) {
     await exec('git', ['remote', 'set-url', 'origin', remoteUrl], { cwd: dst });
+  }
+}
+
+type ContainerWithExec = Container & {
+  exec?: (opts: unknown) => Promise<{
+    start(opts: unknown): Promise<void>;
+    inspect(): Promise<{ ExitCode: number }>;
+  }>;
+};
+
+async function execReset(container: Container): Promise<boolean> {
+  try {
+    const c = container as ContainerWithExec;
+    if (!c.exec || typeof c.exec !== 'function') return false;
+    const e = await c.exec({
+      Cmd: [
+        'sh',
+        '-c',
+        'git merge --abort 2>/dev/null || true; git reset --hard HEAD; git clean -fdx -e node_modules',
+      ],
+      AttachStdout: true,
+      AttachStderr: true,
+      User: '1001:1001',
+    });
+    await e.start({});
+    const info = await e.inspect();
+    return info.ExitCode === 0;
+  } catch {
+    return false;
   }
 }

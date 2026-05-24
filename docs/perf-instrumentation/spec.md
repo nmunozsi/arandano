@@ -66,7 +66,14 @@ reads and merges it with its own timings after the container terminates.
   "task_id": "T6",
   "stack": "node-ts",
   "image": "ghcr.io/nmunozsi/arandano-worker:latest@sha256:abc...",
-  "host": { "pull": 8421, "clone": 3104, "create": 412, "wait": 893102, "copy_artifacts": 89 },
+  "host": {
+    "gitnexus_prewarm": 1204,
+    "pull": 8421,
+    "clone": 3104,
+    "create": 412,
+    "wait": 893102,
+    "copy_artifacts": 89
+  },
   "worker": {
     "checkout": 412,
     "install": 178233,
@@ -88,8 +95,10 @@ reads and merges it with its own timings after the container terminates.
 **Persistent** — `.arandano/bench.csv` (one row appended per run):
 
 ```
-timestamp,task_id,stack,image_sha,total_ms,host_pull_ms,host_clone_ms,host_wait_ms,worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms
+timestamp,task_id,stack,image_sha,total_ms,host_gitnexus_prewarm_ms,host_pull_ms,host_clone_ms,host_wait_ms,worker_install_ms,worker_cli_ms,worker_gates_ms,worker_push_ms
 ```
+
+`host_gitnexus_prewarm_ms` is 0 for tasks that do not request the `gitnexus` MCP server.
 
 `worker_gates_ms` is the sum of all `gate.*` durations. The CSV is committable
 so baseline + post-improvement runs are diffable in git.
@@ -108,6 +117,9 @@ no network.
 
 - `PerfRecorder` lives in `@arandano/core` — importable by both host and worker,
   zero dependencies.
+- `gitnexus_prewarm` timing is recorded in `runOne.ts` (core), not in
+  `DockerExecutor`. `runOne` wraps `ensureGitnexusCacheHost` and emits the
+  duration before calling `executor.start()`.
 - Bench-CSV merger lives in `@arandano/executors-docker` — host owns the final
   merge of host + worker timings and the CSV append.
 - `bench` CLI lives in `@arandano/cli` and is read-only.
@@ -120,7 +132,7 @@ no network.
 | T2  | Worker `driver.ts` instrumentation + image rebuild                | code + image | 45 min   | —         |
 | T3  | Host `DockerExecutor` instrumentation + CSV merger                | code         | 45 min   | —         |
 | T4  | `arandano bench` CLI command (TDD)                                | code         | 30 min   | —         |
-| T5  | Baseline measurement of three-helpers plan                        | run          | 5 min    | ~25 min   |
+| T5  | Baseline measurement of three-helpers plan (use `--no-architect`) | run          | 5 min    | ~25 min   |
 | T6  | **Re-brainstorm based on baseline data** (decision gate)          | design       | 30 min   | —         |
 | T7  | Improvement A — _tentative_: npm cache volume                     | code + run   | 30 min   | ~25 min   |
 | T8  | Improvement B — _tentative_: skip docker pull when digest matches | code + run   | 30 min   | ~25 min   |
@@ -173,6 +185,19 @@ The addendum is the deliverable from T6. T7+ then implement that list.
 - Container reuse across tasks (lifecycle/cleanup complexity)
 - Claude Code prompting / tool-call reduction (model behaviour, not infra)
 - Multi-machine / distributed runs (Phase 5+ k8s territory)
+
+## Architect task and measurements
+
+Full-plan runs now auto-spawn a `T-architect` container after all other tasks
+complete (see `packages/core/src/orchestrator/orchestrator.ts`). Its row will
+appear in `bench.csv` as `task_id=T-architect`. This is intentional: the
+architect's container time is real cost and should be visible.
+
+**For baseline and improvement measurements (T5, T7, T8, T9):** always pass
+`--no-architect` when running the three-helpers plan so the measurement covers
+only the domain tasks and is directly comparable across runs. The architect
+task's timing can be measured separately if desired but is not part of the
+≥40% reduction target.
 
 ## Risks & Mitigations
 
